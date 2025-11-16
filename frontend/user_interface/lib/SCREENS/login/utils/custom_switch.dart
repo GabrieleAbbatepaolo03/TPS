@@ -6,8 +6,8 @@ class CustomSwitch extends StatefulWidget {
   final Color primaryColor;
   final Color secondaryColor;
   final Color textColor;
-  final bool isLoginSelected; // nuovo: stato iniziale
-  final ValueChanged<bool> onChanged; // obbligatorio per comunicare fuori
+  final bool isLoginSelected;
+  final ValueChanged<bool> onChanged;
 
   const CustomSwitch({
     super.key,
@@ -30,23 +30,21 @@ class _CustomSwitchState extends State<CustomSwitch> {
   @override
   void initState() {
     super.initState();
-    // Inizializza con il valore passato dal parent
     isLeftSelected = widget.isLoginSelected;
-  }
-
-  void _toggle(bool selectLeft) {
-    if (selectLeft != isLeftSelected) {
-      setState(() => isLeftSelected = selectLeft);
-      widget.onChanged(selectLeft); // Notifica al parent
-    }
   }
 
   @override
   void didUpdateWidget(covariant CustomSwitch oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Aggiorna lo stato se cambia il valore esterno
     if (widget.isLoginSelected != oldWidget.isLoginSelected) {
-      setState(() => isLeftSelected = widget.isLoginSelected);
+      isLeftSelected = widget.isLoginSelected;
+    }
+  }
+
+  void _toggle(bool selectLeft) {
+    if (selectLeft != isLeftSelected) {
+      setState(() => isLeftSelected = selectLeft);
+      widget.onChanged(selectLeft);
     }
   }
 
@@ -54,7 +52,6 @@ class _CustomSwitchState extends State<CustomSwitch> {
   Widget build(BuildContext context) {
     return Container(
       height: 55,
-      width: double.infinity,
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
         color: widget.secondaryColor,
@@ -62,11 +59,9 @@ class _CustomSwitchState extends State<CustomSwitch> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          double innerWidth = (constraints.maxWidth - 10) / 2;
-
+          final innerWidth = (constraints.maxWidth - 10) / 2;
           return Stack(
             children: [
-              // Box animato che trasla
               AnimatedAlign(
                 alignment: isLeftSelected
                     ? Alignment.centerLeft
@@ -88,8 +83,6 @@ class _CustomSwitchState extends State<CustomSwitch> {
                   ),
                 ),
               ),
-
-              // Testi cliccabili
               Row(
                 children: [
                   Expanded(

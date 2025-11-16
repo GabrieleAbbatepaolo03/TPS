@@ -10,4 +10,7 @@ urlpatterns = [
 
     # Parkings app
     path('api/parkings/', include('parkings.urls')),
+
+    # Vehicles app
+    path('api/vehicles/', include('vehicles.urls')),    
 ]

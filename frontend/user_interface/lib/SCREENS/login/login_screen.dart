@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:user_interface/MAIN%20UTILS/page_transition.dart';
 import 'package:user_interface/SCREENS/login/utils/custom_switch.dart';
-import 'package:user_interface/SCREENS/main_screen.dart';
+import 'package:user_interface/SCREENS/root_screen.dart';
 import 'package:user_interface/SERVICES/auth_service.dart';
 import 'package:user_interface/services/AUTHETNTICATION%20HELPERS/secure_storage_service.dart';
 
@@ -29,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _navigateToMain() {
     Navigator.of(context).pushReplacement(
-      slideRoute(const MainScreen()), 
+      slideRoute(const RootPage()), 
     );
   }
 

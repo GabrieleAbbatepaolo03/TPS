@@ -1,13 +1,21 @@
 from django.contrib import admin
-from .models import Parking, Spot
+from .models import Parking, Spot, ParkingEntrance 
 
-# Register Parking model
+class ParkingEntranceInline(admin.TabularInline):
+    model = ParkingEntrance
+    fields = ('address_line', 'latitude', 'longitude') 
+    extra = 1
+
 @admin.register(Parking)
 class ParkingAdmin(admin.ModelAdmin):
-    list_display = ('name', 'city', 'address', 'total_spots', 'occupied_spots', 'rate_per_hour')
+    inlines = [ParkingEntranceInline] 
+    list_display = ('name', 'city', 'address', 'center_latitude', 'center_longitude', 'total_spots', 'available_spots', 'rate_per_hour')
     search_fields = ('name', 'city', 'address')
+    fields = (
+        'name', 'city', 'address', 'rate_per_hour', 
+        'center_latitude', 'center_longitude'
+    ) 
 
-# Register Spot model
 @admin.register(Spot)
 class SpotAdmin(admin.ModelAdmin):
     list_display = ('id', 'parking', 'floor', 'zone', 'is_occupied')

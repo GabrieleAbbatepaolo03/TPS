@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:user_interface/MAIN%20UTILS/bottom_nav_btn.dart';
+import 'package:user_interface/MAIN%20UTILS/BOTTOM%20NAV%20BAR/bottom_nav_btn.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -11,7 +11,7 @@ class BottomNavBar extends StatelessWidget {
     required this.currentIndex,
     required this.onItemSelected,
     required this.icons,
-  }) : assert(icons.length == 4, 'Devi passare esattamente 4 icone');
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +22,7 @@ class BottomNavBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(25),
         color: Colors.transparent,
         child: Container(
-          height: 70,
+          height: 80,
           decoration: BoxDecoration(
             color: const Color.fromARGB(255, 6, 20, 43),
             borderRadius: BorderRadius.circular(30),
