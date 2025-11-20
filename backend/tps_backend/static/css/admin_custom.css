@@ -1,0 +1,146 @@
+/* TPS Admin - Glassmorphism Effects */
+
+/* Dynamic gradient background */
+body {
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.3), transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(59, 130, 246, 0.2), transparent 50%),
+        linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1e293b 100%) !important;
+    background-size: 200% 200% !important;
+    animation: gradientShift 15s ease infinite !important;
+}
+
+@keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+/* Rotating light effect */
+body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: 
+        radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+        radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
+    animation: rotate 20s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Ensure content above light effects */
+aside, main, header, nav {
+    position: relative;
+    z-index: 1;
+}
+
+/* Sidebar glassmorphism */
+aside {
+    background: rgba(15, 23, 42, 0.6) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border-right: 1px solid rgba(139, 92, 246, 0.2) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+}
+
+/* Header */
+header {
+    background: rgba(15, 23, 42, 0.6) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2) !important;
+}
+
+/* Cards and tables */
+[class*="bg-white"], table, .module {
+    background: rgba(15, 23, 42, 0.5) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    border: 1px solid rgba(139, 92, 246, 0.2) !important;
+    border-radius: 16px !important;
+    box-shadow: 
+        0 8px 32px 0 rgba(0, 0, 0, 0.37),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Table row hover */
+tbody tr:hover {
+    background: linear-gradient(90deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.1)) !important;
+}
+
+/* Table header */
+thead th {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.2)) !important;
+    backdrop-filter: blur(10px) !important;
+}
+
+/* Input fields */
+input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+    background: rgba(15, 23, 42, 0.6) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    color: #fff !important;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: rgba(139, 92, 246, 0.6) !important;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3) !important;
+    outline: none !important;
+}
+
+/* Login page - brighter inputs */
+.login input[type="text"],
+.login input[type="email"],
+.login input[type="password"] {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(139, 92, 246, 0.5) !important;
+    color: #fff !important;
+}
+
+.login input:focus {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(139, 92, 246, 0.8) !important;
+}
+
+/* Buttons */
+button:not([class*="bg-transparent"]), [type="submit"], .button {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(59, 130, 246, 0.3)) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(139, 92, 246, 0.6) !important;
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3) !important;
+}
+
+button:hover:not([class*="bg-transparent"]), [type="submit"]:hover, .button:hover {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.6), rgba(59, 130, 246, 0.5)) !important;
+    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.5) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.5), rgba(59, 130, 246, 0.5));
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.7), rgba(59, 130, 246, 0.7));
+}

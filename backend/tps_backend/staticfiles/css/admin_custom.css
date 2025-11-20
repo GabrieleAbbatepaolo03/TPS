@@ -1,0 +1,339 @@
+/* 🚀 超酷炫毛玻璃特效 - Premium Glassmorphism */
+
+/* 动态渐变背景 */
+body {
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.3), transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(59, 130, 246, 0.2), transparent 50%),
+        linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1e293b 100%) !important;
+    background-size: 200% 200% !important;
+    animation: gradientShift 15s ease infinite !important;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+@keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+/* 添加动态光效 */
+body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: 
+        radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+        radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
+    animation: rotate 20s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* 确保内容在光效之上 */
+aside, main, header {
+    position: relative;
+    z-index: 1;
+}
+
+/* 高级侧边栏毛玻璃 */
+aside[class*="sidebar"] {
+    background: rgba(15, 23, 42, 0.6) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border-right: 1px solid rgba(139, 92, 246, 0.2) !important;
+    box-shadow: 
+        0 8px 32px 0 rgba(0, 0, 0, 0.37),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+}
+
+/* 主内容区域 */
+main {
+    background: transparent !important;
+}
+
+/* 超级卡片毛玻璃效果 */
+[class*="bg-white"],
+[class*="card"],
+.module {
+    background: rgba(15, 23, 42, 0.5) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    border: 1px solid rgba(139, 92, 246, 0.2) !important;
+    border-radius: 16px !important;
+    box-shadow: 
+        0 8px 32px 0 rgba(0, 0, 0, 0.37),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+        0 0 20px rgba(139, 92, 246, 0.1) !important;
+    transition: all 0.3s ease !important;
+}
+
+[class*="bg-white"]:hover,
+[class*="card"]:hover,
+.module:hover {
+    border-color: rgba(139, 92, 246, 0.4) !important;
+    box-shadow: 
+        0 12px 40px 0 rgba(0, 0, 0, 0.5),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+        0 0 30px rgba(139, 92, 246, 0.2) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* 侧边栏导航分组 - 高级边框 */
+aside nav > div {
+    margin-bottom: 16px;
+}
+
+aside nav > div > div {
+    border: 1px solid rgba(139, 92, 246, 0.4) !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+    margin-bottom: 12px !important;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.1)) !important;
+    backdrop-filter: blur(10px) !important;
+    box-shadow: 
+        0 4px 16px rgba(139, 92, 246, 0.2),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+    transition: all 0.3s ease !important;
+}
+
+aside nav > div > div:hover {
+    border-color: rgba(139, 92, 246, 0.6) !important;
+    box-shadow: 
+        0 6px 20px rgba(139, 92, 246, 0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 禁用分组标题点击 */
+aside nav > div > div > button,
+aside nav > div > div > a:first-child {
+    pointer-events: none !important;
+    cursor: default !important;
+}
+
+/* 侧边栏链接 - 高级悬停效果 */
+aside nav a,
+aside nav button {
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 8px !important;
+    margin: 6px 0 !important;
+    padding: 10px 14px !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+/* 链接悬停光效 */
+aside nav a::before,
+aside nav button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+aside nav a:hover::before,
+aside nav button:hover::before {
+    left: 100%;
+}
+
+aside nav a:hover,
+aside nav button:hover {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(59, 130, 246, 0.15)) !important;
+    border-color: rgba(139, 92, 246, 0.6) !important;
+    transform: translateX(6px) scale(1.02) !important;
+    box-shadow: 
+        0 4px 12px rgba(139, 92, 246, 0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 激活状态 - 发光效果 */
+aside nav a[aria-current="page"] {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(59, 130, 246, 0.3)) !important;
+    border-color: rgba(139, 92, 246, 0.8) !important;
+    box-shadow: 
+        0 0 20px rgba(139, 92, 246, 0.4),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 顶部导航栏 - 高级毛玻璃 */
+header {
+    background: rgba(15, 23, 42, 0.6) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2) !important;
+    box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+}
+
+/* 表格 - 超级毛玻璃 */
+table {
+    background: rgba(15, 23, 42, 0.5) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+}
+
+/* 表格行 - 动态效果 */
+tbody tr {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    transition: all 0.3s ease !important;
+}
+
+tbody tr:hover {
+    background: linear-gradient(90deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.1)) !important;
+    box-shadow: inset 0 0 20px rgba(139, 92, 246, 0.2) !important;
+    transform: scale(1.01) !important;
+}
+
+/* 表头 - 发光效果 */
+thead th {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.2)) !important;
+    backdrop-filter: blur(10px) !important;
+    border-bottom: 2px solid rgba(139, 92, 246, 0.5) !important;
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.2) !important;
+}
+
+/* 输入框 - 高级毛玻璃 */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+    background: rgba(15, 23, 42, 0.6) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    border-radius: 10px !important;
+    color: #fff !important;
+    transition: all 0.3s ease !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    background: rgba(15, 23, 42, 0.7) !important;
+    border-color: rgba(139, 92, 246, 0.6) !important;
+    box-shadow: 
+        0 0 20px rgba(139, 92, 246, 0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+    outline: none !important;
+    transform: scale(1.02) !important;
+}
+
+/* 按钮 - 发光悬停效果 */
+button:not([class*="bg-transparent"]),
+[type="submit"],
+.button {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(59, 130, 246, 0.3)) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(139, 92, 246, 0.6) !important;
+    border-radius: 10px !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 
+        0 4px 16px rgba(139, 92, 246, 0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+button:hover:not([class*="bg-transparent"]),
+[type="submit"]:hover,
+.button:hover {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.6), rgba(59, 130, 246, 0.5)) !important;
+    transform: translateY(-3px) scale(1.05) !important;
+    box-shadow: 
+        0 8px 24px rgba(139, 92, 246, 0.5),
+        0 0 30px rgba(139, 92, 246, 0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 搜索框 - 发光效果 */
+[type="search"] {
+    background: rgba(15, 23, 42, 0.6) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    border-radius: 12px !important;
+    transition: all 0.3s ease !important;
+}
+
+[type="search"]:focus {
+    box-shadow: 
+        0 0 20px rgba(139, 92, 246, 0.4),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 面包屑 */
+.breadcrumbs,
+[class*="breadcrumb"] {
+    background: rgba(15, 23, 42, 0.5) !important;
+    backdrop-filter: blur(10px) !important;
+    border-radius: 10px !important;
+    padding: 10px 18px !important;
+    border: 1px solid rgba(139, 92, 246, 0.2) !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+}
+
+/* 消息提示 - 动态效果 */
+.messagelist li,
+[class*="alert"] {
+    background: rgba(15, 23, 42, 0.7) !important;
+    backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    border-radius: 12px !important;
+    box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+    animation: slideIn 0.5s ease !important;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.5), rgba(59, 130, 246, 0.5));
+    border-radius: 10px;
+    border: 2px solid rgba(15, 23, 42, 0.5);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.7), rgba(59, 130, 246, 0.7));
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+}
