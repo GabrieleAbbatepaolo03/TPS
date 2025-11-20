@@ -32,6 +32,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'unfold',  # before django.contrib.admin
+    'unfold.contrib.filters',  # optional, if special filters are needed
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -61,7 +63,7 @@ ROOT_URLCONF = 'tps_backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -147,13 +149,78 @@ CORS_ALLOW_HEADERS = [
 
 AUTH_USER_MODEL = 'users.CustomUser'
 
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
+from django.templatetags.static import static
+from django.urls import reverse_lazy
+
+UNFOLD = {
+    "SITE_TITLE": "TPS Admin",
+    "SITE_HEADER": "TPS Management System",
+    "SITE_URL": "/admin/",
+    "DASHBOARD_CALLBACK": "tps_backend.dashboard.dashboard_callback",
+    "STYLES": [
+        lambda request: static("css/admin_custom.css"),
+    ],
+    "SIDEBAR": {
+        "show_search": False,
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": "Authentication",
+                "items": [
+                    {
+                        "title": "Groups",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Parking Management",
+                "items": [
+                    {
+                        "title": "Parkings",
+                        "link": reverse_lazy("admin:parkings_parking_changelist"),
+                    },
+                    {
+                        "title": "Spots",
+                        "link": reverse_lazy("admin:parkings_spot_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "User Management",
+                "items": [
+                    {
+                        "title": "Users",
+                        "link": reverse_lazy("admin:users_customuser_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Vehicle Management",
+                "items": [
+                    {
+                        "title": "Parking Sessions",
+                        "link": reverse_lazy("admin:vehicles_parkingsession_changelist"),
+                    },
+                    {
+                        "title": "Vehicles",
+                        "link": reverse_lazy("admin:vehicles_vehicle_changelist"),
+                    },
+                ],
+            },
+        ],
+    },
+}
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1), 
-    
-    "REFRESH_TOKEN_LIFETIME": timedelta(minutes=60), 
-
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(minutes=60),
     "TOKEN_OBTAIN_SERIALIZER": "rest_framework_simplejwt.serializers.TokenObtainPairSerializer",
-
-    "ROTATE_REFRESH_TOKENS": True, 
+    "ROTATE_REFRESH_TOKENS": True,
 }

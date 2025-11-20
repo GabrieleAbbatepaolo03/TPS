@@ -1,0 +1,43 @@
+{% extends "unfold/layouts/base_simple.html" %}
+{% load i18n unfold %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block title %}
+    {% trans "Dashboard" %} | {{ site_title }}
+{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+            Welcome to TPS Management System
+        </h1>
+        <p class="text-lg text-gray-600 dark:text-gray-300 mb-2">
+            {% if user.first_name %}
+                Hello, {{ user.first_name }}!
+            {% else %}
+                Hello, {{ user.email }}!
+            {% endif %}
+        </p>
+        <p class="text-gray-500 dark:text-gray-400">
+            Use the sidebar navigation to manage parkings, users, vehicles, and sessions.
+        </p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Parking Management</h3>
+        <p class="text-gray-500 dark:text-gray-400 text-sm">Manage parking lots and spots</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">User Management</h3>
+        <p class="text-gray-500 dark:text-gray-400 text-sm">Manage system users</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Vehicle Management</h3>
+        <p class="text-gray-500 dark:text-gray-400 text-sm">Manage vehicles and sessions</p>
+    </div>
+</div>
+{% endblock %}

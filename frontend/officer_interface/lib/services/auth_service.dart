@@ -34,9 +34,17 @@ class AuthService {
       // 2. Role validation (Requires backend to return the role in token response)
       if (data.containsKey('role')) {
         final userRole = data['role'];
+        
+        // Superuser can access everything
+        if (userRole == 'superuser') {
+          return true;
+        }
+        
+        // Check role match
         if (requiredRole == 'any' || userRole == requiredRole) {
           return true;
         }
+        
         // Role mismatch: log out and fail
         await logout();
         return false;

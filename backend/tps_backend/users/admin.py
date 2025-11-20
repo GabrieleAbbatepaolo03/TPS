@@ -1,9 +1,9 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
+from unfold.admin import ModelAdmin
 from django import forms
 from .models import CustomUser
 
-# Form to create users with single password
+
 class CustomUserCreationForm(forms.ModelForm):
     password = forms.CharField(label='Password', widget=forms.PasswordInput)
 
@@ -18,35 +18,30 @@ class CustomUserCreationForm(forms.ModelForm):
             user.save()
         return user
 
-# Form to change existing users
+
 class CustomUserChangeForm(forms.ModelForm):
     class Meta:
         model = CustomUser
-        fields = ('email', 'first_name', 'last_name', 'role', 'password', 'is_active', 'is_staff', 'is_superuser')
+        fields = ('email', 'first_name', 'last_name', 'role', 'is_active')
 
-class CustomUserAdmin(UserAdmin):
+
+@admin.register(CustomUser)
+class CustomUserAdmin(ModelAdmin):
     form = CustomUserChangeForm
     add_form = CustomUserCreationForm
 
-    list_display = ('email', 'first_name', 'last_name', 'role', 'is_staff', 'is_active')
-    list_filter = ('role', 'is_staff', 'is_active')
+    list_display = ('email', 'first_name', 'last_name', 'role', 'is_active')
+    list_filter = ('role', 'is_active')
+    search_fields = ('email', 'first_name', 'last_name')
+    ordering = ('email',)
 
     fieldsets = (
-        (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ('first_name', 'last_name', 'role')}),
-        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Important dates', {'fields': ('last_login',)}),
+        ('Personal Info', {'fields': ('email', 'first_name', 'last_name', 'role')}),
+        ('Status', {'fields': ('is_active',)}),
     )
 
     add_fieldsets = (
-        (None, {
-            'classes': ('wide',),
-            'fields': ('email', 'first_name', 'last_name', 'role', 'password', 'is_active', 'is_staff', 'is_superuser'),
+        ('Personal Info', {
+            'fields': ('email', 'first_name', 'last_name', 'role', 'password'),
         }),
     )
-
-    search_fields = ('email', 'first_name', 'last_name')
-    ordering = ('email',)
-    filter_horizontal = ('groups', 'user_permissions',)
-
-admin.site.register(CustomUser, CustomUserAdmin)
