@@ -1,10 +1,13 @@
+// [FULL REPLACEMENT] frontend/user_interface/lib/SERVICES/parking_service.dart
+
 import 'dart:convert';
 import '../MODELS/parking_lot.dart';
 import 'AUTHETNTICATION HELPERS/authenticated_http_client.dart';
 
 class ParkingApiService {
   final AuthenticatedHttpClient _httpClient = AuthenticatedHttpClient();
-  final String _baseUrl = 'http://127.0.0.1:8000/api/parkings/parkings/'; 
+
+  final String _baseUrl = 'http://127.0.0.1:8000/api/parkings/';
 
   Future<List<ParkingLot>> fetchAllParkingLots() async {
     try {
@@ -14,19 +17,23 @@ class ParkingApiService {
         List<dynamic> jsonList;
 
         if (decodedBody is List) {
-            jsonList = decodedBody;
-        } else if (decodedBody is Map<String, dynamic> && decodedBody.containsKey('results')) {
-            jsonList = decodedBody['results'] as List<dynamic>;
+          jsonList = decodedBody;
+        } else if (decodedBody is Map<String, dynamic> &&
+            decodedBody.containsKey('results')) {
+          jsonList = decodedBody['results'] as List<dynamic>;
         } else if (decodedBody is Map<String, dynamic> && decodedBody.isEmpty) {
-            jsonList = [];
+          jsonList = [];
         } else {
-            jsonList = []; 
+          jsonList = [];
         }
+
         return jsonList
             .map((json) => ParkingLot.fromJson(json as Map<String, dynamic>))
             .toList();
-      }  else {
-        throw Exception('Failed to load parking lots. Status: ${response.statusCode}. Body: ${response.body}');
+      } else {
+        throw Exception(
+          'Failed to load parking lots. Status: ${response.statusCode}. Body: ${response.body}',
+        );
       }
     } catch (e) {
       rethrow;

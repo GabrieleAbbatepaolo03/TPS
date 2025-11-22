@@ -1,5 +1,3 @@
-// frontend/user_interface/lib/SCREENS/home/home_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -7,14 +5,13 @@ import 'package:user_interface/SCREENS/home/utils/home_map_widget.dart';
 import 'package:user_interface/SCREENS/home/utils/home_search_bar.dart';
 import 'package:user_interface/SCREENS/home/utils/home_search_result_list.dart';
 import 'package:user_interface/SCREENS/login/login_screen.dart';
-import 'package:user_interface/MAIN%20UTILS/page_transition.dart';
-import 'package:user_interface/SCREENS/start%20session/start_session_screen.dart';
-import 'package:user_interface/SERVICES/AUTHETNTICATION%20HELPERS/secure_storage_service.dart';
+import 'package:user_interface/MAIN UTILS/page_transition.dart';
+import 'package:user_interface/SCREENS/start session/start_session_screen.dart';
+import 'package:user_interface/SERVICES/AUTHETNTICATION HELPERS/secure_storage_service.dart';
 import 'package:user_interface/SERVICES/parking_service.dart';
 import 'package:user_interface/SERVICES/user_service.dart';
 import 'package:user_interface/MODELS/parking_lot.dart';
 
-// 新增导入: 用于处理图片资源
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 
@@ -38,8 +35,8 @@ class _HomeScreenState extends State<HomeScreen> {
   LatLng _currentPosition = const LatLng(41.9028, 12.4964);
   final Set<Marker> _markers = {};
 
-  // 用于存储自定义用户图标的 BitmapDescriptor
   BitmapDescriptor? _userLocationIcon;
+  BitmapDescriptor? _parkingMarkerIcon;
 
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -49,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final FocusNode _searchFocusNode = FocusNode();
   bool _isSearchExpanded = false;
-  bool _isNavigating = false; // Correzione per il bug del focus
+  bool _isNavigating = false;
   static const double _searchBarHeight = 60.0;
 
   @override
@@ -58,7 +55,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadAllUserData();
     _loadParkingLots();
     _getUserLocation();
-    _loadCustomUserIcon(); // 加载自定义用户图标
+    _loadCustomUserIcon();
+    _loadCustomParkingIcon();
     _searchFocusNode.addListener(_onSearchFocusChanged);
   }
 
@@ -71,37 +69,52 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  // 加载自定义用户图标并创建 BitmapDescriptor
   Future<void> _loadCustomUserIcon() async {
-    // 1. 从 assets 中加载图片
-    // 请确保文件路径 'assets/images/car_location_marker.png' 正确
     final ByteData byteData = await rootBundle.load(
       'assets/images/car_location_marker.png',
     );
-
-    // 2. 转换为 BitmapDescriptor (targetWidth 用于调整图标大小，例如 80-120 像素)
     final ui.Codec codec = await ui.instantiateImageCodec(
       byteData.buffer.asUint8List(),
       targetWidth: 100,
     );
     final ui.FrameInfo fi = await codec.getNextFrame();
     final ui.Image image = fi.image;
-
     final ByteData? resizedByteData = await image.toByteData(
       format: ui.ImageByteFormat.png,
     );
 
     if (!mounted || resizedByteData == null) return;
 
-    // 3. 更新状态，存储 BitmapDescriptor
     setState(() {
       _userLocationIcon = BitmapDescriptor.fromBytes(
         resizedByteData.buffer.asUint8List(),
       );
     });
 
-    // 4. 由于图标加载完毕，重新渲染标记
     _filterAndDisplayParkings();
+  }
+
+  Future<void> _loadCustomParkingIcon() async {
+    final ByteData byteData = await rootBundle.load(
+      'assets/images/parking_marker.png',
+    );
+    final ui.Codec codec = await ui.instantiateImageCodec(
+      byteData.buffer.asUint8List(),
+      targetWidth: 100,
+    );
+    final ui.FrameInfo fi = await codec.getNextFrame();
+    final ui.Image image = fi.image;
+    final ByteData? resizedByteData = await image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
+
+    if (!mounted || resizedByteData == null) return;
+
+    setState(() {
+      _parkingMarkerIcon = BitmapDescriptor.fromBytes(
+        resizedByteData.buffer.asUint8List(),
+      );
+    });
   }
 
   Future<void> _loadAllUserData() async {
@@ -155,12 +168,14 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       accessGranted = false;
     }
+
     if (!mounted) return;
 
     setState(() {
       _locationAccessGranted = accessGranted;
       _isLocationLoading = false;
     });
+
     _filterAndDisplayParkings();
   }
 
@@ -174,6 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
+    _filterAndDisplayParkings();
   }
 
   void _onSearchFocusChanged() {
@@ -216,29 +232,49 @@ class _HomeScreenState extends State<HomeScreen> {
   void _filterAndDisplayParkings() {
     if (!mounted) return;
     final Set<Marker> newMarkers = {};
+
+    print(
+      'Current GPS Position: ${_currentPosition.latitude}, ${_currentPosition.longitude}',
+    );
+
     if (_locationAccessGranted) {
-      // 关键修改：将用户位置图标设置为自定义图标
       newMarkers.add(
         Marker(
           markerId: const MarkerId('user'),
           position: _currentPosition,
           infoWindow: const InfoWindow(title: 'You are here'),
-          icon: _userLocationIcon ?? BitmapDescriptor.defaultMarker, // 使用自定义图标
+          icon: _userLocationIcon ?? BitmapDescriptor.defaultMarker,
         ),
       );
     }
 
-    _nearbyParkingLots = _parkingLots.where((lot) {
+    final List<ParkingLot> tempNearbyList = [];
+    final double distanceLimitInMeters = _distanceLimitKm * 1000;
+
+    for (var lot in _parkingLots) {
       final distanceInMeters = Geolocator.distanceBetween(
         _currentPosition.latitude,
         _currentPosition.longitude,
         lot.centerPosition.latitude,
         lot.centerPosition.longitude,
       );
-      return distanceInMeters <= (_distanceLimitKm * 1000);
-    }).toList();
+
+      print(
+        'Lot ${lot.name} (${lot.id}) distance: ${distanceInMeters.toStringAsFixed(2)} meters',
+      );
+
+      if (distanceInMeters <= distanceLimitInMeters) {
+        tempNearbyList.add(lot);
+      }
+    }
+
+    _nearbyParkingLots = tempNearbyList;
 
     _applySearchFilter(_nearbyParkingLots);
+
+    print(
+      'Parkings displayed after all filters: ${_filteredParkingLots.length}',
+    );
 
     for (var lot in _filteredParkingLots) {
       newMarkers.add(
@@ -252,7 +288,9 @@ class _HomeScreenState extends State<HomeScreen> {
               _navigateToStartSession(lot);
             },
           ),
-          icon: BitmapDescriptor.defaultMarker, // 保持停车场图标为默认图标
+          icon:
+              _parkingMarkerIcon ??
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
           onTap: () {
             _mapController?.animateCamera(
               CameraUpdate.newLatLng(lot.centerPosition),
@@ -266,6 +304,22 @@ class _HomeScreenState extends State<HomeScreen> {
       _markers.clear();
       _markers.addAll(newMarkers);
     });
+
+    if (_mapController != null && newMarkers.isNotEmpty) {
+      LatLng targetPosition = _currentPosition;
+
+      if (!_locationAccessGranted && _filteredParkingLots.isNotEmpty) {
+        targetPosition = _filteredParkingLots.first.centerPosition;
+      }
+
+      Future.delayed(const Duration(milliseconds: 50), () {
+        if (_mapController != null) {
+          _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(targetPosition, 14.0),
+          );
+        }
+      });
+    }
   }
 
   @override
@@ -292,7 +346,6 @@ class _HomeScreenState extends State<HomeScreen> {
           },
           gesturesEnabled: !_isSearchExpanded,
         ),
-
         Align(
           alignment: Alignment.topCenter,
           child: SafeArea(
@@ -316,7 +369,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         focusNode: _searchFocusNode,
                         onChanged: _updateSearchQuery,
                       ),
-
                       if (_isSearchExpanded)
                         ConstrainedBox(
                           constraints: BoxConstraints(

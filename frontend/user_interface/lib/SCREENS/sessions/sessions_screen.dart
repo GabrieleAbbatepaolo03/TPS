@@ -1,25 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconly/iconly.dart';
-import 'package:user_interface/MAIN%20UTILS/app_sizes.dart';
-import 'package:user_interface/MAIN%20UTILS/page_title.dart';
+import 'package:user_interface/MAIN UTILS/app_sizes.dart';
+import 'package:user_interface/MAIN UTILS/page_title.dart';
 import 'package:user_interface/MODELS/parking_session.dart';
 import 'package:user_interface/SERVICES/parking_session_service.dart';
 import 'package:intl/intl.dart';
-import 'dart:async'; // Importa Timer
+import 'dart:async';
 import '../../MAIN UTILS/app_theme.dart';
+import 'package:user_interface/MODELS/parking_lot.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:user_interface/STATE/parking_session_state.dart';
+import 'package:user_interface/STATE/payment_state.dart';
+import 'package:user_interface/MODELS/tariff_config.dart';
 
-class SessionsScreen extends StatefulWidget {
+class SessionsScreen extends ConsumerStatefulWidget {
   const SessionsScreen({super.key});
 
   @override
-  State<SessionsScreen> createState() => _SessionsScreenState();
+  ConsumerState<SessionsScreen> createState() => _SessionsScreenState();
 }
 
-class _SessionsScreenState extends State<SessionsScreen> {
+class _SessionsScreenState extends ConsumerState<SessionsScreen> {
   final ParkingSessionService _sessionService = ParkingSessionService();
-  
+
   late Future<List<ParkingSession>> _sessionsFuture;
+  bool _isStopping = false;
 
   @override
   void initState() {
@@ -29,41 +35,110 @@ class _SessionsScreenState extends State<SessionsScreen> {
 
   void _loadSessions() {
     setState(() {
-
       _sessionsFuture = _sessionService.fetchSessions(onlyActive: false);
     });
+
+    _sessionsFuture.then((sessions) {
+      final active = sessions.where((s) => s.isActive).firstOrNull;
+
+      if (active != null) {
+        final config =
+            active.parkingLot?.tariffConfig ?? ParkingLot.defaultTariffConfig;
+
+        ref
+            .read(parkingControllerProvider.notifier)
+            .start(
+              sessionId: active.id,
+              vehicleId: active.vehicle!.id,
+              parkingLotId: active.parkingLot!.id,
+              startAt: active.startTime,
+              tariffConfig: config,
+            );
+      } else {
+        ref.read(parkingControllerProvider.notifier).reset();
+        ref.read(paymentProvider.notifier).resetPreAuthorization();
+      }
+    });
   }
-  
-  void _endSession(int sessionId) async {
+
+  void _stopSession(int sessionId) async {
+    if (_isStopping) return;
+    setState(() => _isStopping = true);
+
+    final activeState = ref.read(parkingControllerProvider);
+    final config = activeState.tariffConfig ?? ParkingLot.defaultTariffConfig;
+
+    final elapsed =
+        ref.read(parkingElapsedProvider).valueOrNull ?? Duration.zero;
+
+    final feeStr = calculateFee(elapsed, config);
+    final roundedFee = double.parse(feeStr);
 
     final endedSession = await _sessionService.endSession(sessionId);
+
     if (mounted && endedSession != null) {
-      _loadSessions(); 
+      await ref.read(paymentProvider.notifier).charge(roundedFee);
+
+      ref.read(parkingControllerProvider.notifier).reset();
+      ref.read(paymentProvider.notifier).resetPreAuthorization();
+
+      _loadSessions();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Parking stopped. Charged €${roundedFee.toStringAsFixed(2)}',
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to end session. Please check connection.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     }
+    setState(() => _isStopping = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final activeState = ref.watch(parkingControllerProvider);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Container(
         height: AppSizes.screenHeight,
         decoration: AppTheme.backgroundGradientDecoration,
         child: SafeArea(
-
           child: FutureBuilder<List<ParkingSession>>(
             future: _sessionsFuture,
             builder: (context, snapshot) {
-              
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: Colors.white));
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                );
               }
               if (snapshot.hasError) {
-                return Center(child: Text('Error loading sessions', style: GoogleFonts.poppins(color: Colors.redAccent)));
+                return Center(
+                  child: Text(
+                    'Error loading sessions',
+                    style: GoogleFonts.poppins(color: Colors.redAccent),
+                  ),
+                );
               }
-              final allSessions = snapshot.data ?? [];
-              final activeSessions = allSessions.where((s) => s.isActive).toList();
-              final historySessions = allSessions.where((s) => !s.isActive).toList();
+
+              final List<ParkingSession> allSessions = snapshot.data ?? [];
+
+              final List<ParkingSession> activeSessionList = activeState.active
+                  ? allSessions
+                        .where((s) => s.id == activeState.sessionId)
+                        .toList()
+                  : [];
+
+              final historySessions = allSessions
+                  .where((s) => !s.isActive)
+                  .toList();
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(20.0),
@@ -72,13 +147,10 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   children: [
                     const PageTitle(title: 'Sessions'),
                     const SizedBox(height: 30),
-
                     _buildSectionTitle(context, 'Active Sessions'),
                     const SizedBox(height: 15),
-                    _buildActiveSessionsList(activeSessions),
-                    
+                    _buildActiveSessionsList(activeSessionList),
                     const SizedBox(height: 30),
-
                     _buildSectionTitle(context, 'History'),
                     const SizedBox(height: 15),
                     _buildHistorySessionsList(historySessions),
@@ -107,13 +179,19 @@ class _SessionsScreenState extends State<SessionsScreen> {
     if (sessions.isEmpty) {
       return Padding(
         padding: const EdgeInsets.only(top: 20.0),
-        child: Center(child: Text('No active sessions found.', style: GoogleFonts.poppins(color: Colors.white54))),
+        child: Center(
+          child: Text(
+            'No active sessions found.',
+            style: GoogleFonts.poppins(color: Colors.white54),
+          ),
+        ),
       );
     }
 
     return ActiveSessionCard(
-      session: sessions.first, 
-      onEndSession: () => _endSession(sessions.first.id),
+      session: sessions.first,
+      onEndSession: () => _stopSession(sessions.first.id),
+      isStopping: _isStopping,
     );
   }
 
@@ -121,7 +199,12 @@ class _SessionsScreenState extends State<SessionsScreen> {
     if (sessions.isEmpty) {
       return Padding(
         padding: const EdgeInsets.only(top: 20.0),
-        child: Center(child: Text('History is empty.', style: GoogleFonts.poppins(color: Colors.white54))),
+        child: Center(
+          child: Text(
+            'History is empty.',
+            style: GoogleFonts.poppins(color: Colors.white54),
+          ),
+        ),
       );
     }
 
@@ -135,10 +218,15 @@ class _SessionsScreenState extends State<SessionsScreen> {
     );
   }
 
-  Widget _buildHistorySessionCard(BuildContext context, {required ParkingSession session}) {
+  Widget _buildHistorySessionCard(
+    BuildContext context, {
+    required ParkingSession session,
+  }) {
     final lotName = session.parkingLot?.name ?? 'Unknown Lot';
     final vehiclePlate = session.vehicle?.plate ?? 'N/A';
-    final cost = session.totalCost != null ? '€${session.totalCost!.toStringAsFixed(2)}' : 'N/A';
+    final cost = session.totalCost != null
+        ? '€${session.totalCost!.toStringAsFixed(2)}'
+        : 'N/A';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -149,10 +237,18 @@ class _SessionsScreenState extends State<SessionsScreen> {
       ),
       child: ListTile(
         contentPadding: EdgeInsets.zero,
-        leading: const Icon(IconlyBold.calendar, color: Colors.white70, size: 30),
+        leading: const Icon(
+          IconlyBold.calendar,
+          color: Colors.white70,
+          size: 30,
+        ),
         title: Text(
           lotName,
-          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
         ),
         subtitle: Text(
           'Vehicle: $vehiclePlate | Ended: ${session.endTime != null ? DateFormat('dd MMM, HH:mm').format(session.endTime!) : 'N/A'}',
@@ -161,8 +257,18 @@ class _SessionsScreenState extends State<SessionsScreen> {
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Cost', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12)),
-            Text(cost, style: GoogleFonts.poppins(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(
+              'Cost',
+              style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12),
+            ),
+            Text(
+              cost,
+              style: GoogleFonts.poppins(
+                color: Colors.greenAccent,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
           ],
         ),
       ),
@@ -170,60 +276,44 @@ class _SessionsScreenState extends State<SessionsScreen> {
   }
 }
 
-class ActiveSessionCard extends StatefulWidget {
+class ActiveSessionCard extends ConsumerStatefulWidget {
   final ParkingSession session;
   final VoidCallback onEndSession;
+  final bool isStopping;
 
   const ActiveSessionCard({
     super.key,
     required this.session,
     required this.onEndSession,
+    required this.isStopping,
   });
 
   @override
-  State<ActiveSessionCard> createState() => _ActiveSessionCardState();
+  ConsumerState<ActiveSessionCard> createState() => _ActiveSessionCardState();
 }
 
-class _ActiveSessionCardState extends State<ActiveSessionCard> {
-  Timer? _timer;
-  Duration _elapsedTime = Duration.zero;
-
-  @override
-  void initState() {
-    super.initState();
-    _updateElapsedTime();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _updateElapsedTime();
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel(); 
-    super.dispose();
-  }
-
-  void _updateElapsedTime() {
-    if (mounted) {
-      setState(() {
-        _elapsedTime = DateTime.now().difference(widget.session.startTime);
-      });
-    }
-  }
-
-  String _formatDuration(Duration d) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    String hours = d.inHours.toString();
-    String minutes = twoDigits(d.inMinutes.remainder(60));
-    String seconds = twoDigits(d.inSeconds.remainder(60));
-    return "$hours:$minutes:$seconds";
-  }
-
+class _ActiveSessionCardState extends ConsumerState<ActiveSessionCard> {
   @override
   Widget build(BuildContext context) {
+    final elapsedTimeAsync = ref.watch(parkingElapsedProvider);
+    final config =
+        ref.watch(parkingControllerProvider).tariffConfig ??
+        ParkingLot.defaultTariffConfig;
+
+    final fee = elapsedTimeAsync.when(
+      data: (d) => calculateFee(d, config),
+      loading: () => '0.00',
+      error: (_, __) => 'N/A',
+    );
+
+    final timeElapsedFormatted = elapsedTimeAsync.when(
+      data: (d) => formatDuration(d),
+      loading: () => '--:--:--',
+      error: (_, __) => 'N/A',
+    );
+
     final lotName = widget.session.parkingLot?.name ?? 'Unknown Lot';
     final vehiclePlate = widget.session.vehicle?.plate ?? 'N/A';
-    final timeElapsedFormatted = _formatDuration(_elapsedTime);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -236,43 +326,77 @@ class _ActiveSessionCardState extends State<ActiveSessionCard> {
         children: [
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(IconlyBold.time_circle, color: Colors.greenAccent, size: 40),
+            leading: const Icon(
+              IconlyBold.time_circle,
+              color: Colors.greenAccent,
+              size: 40,
+            ),
             title: Text(
               lotName,
-              style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18),
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 18,
+              ),
             ),
             subtitle: Text(
               'Vehicle: $vehiclePlate | Started: ${DateFormat('HH:mm').format(widget.session.startTime)}',
-              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13),
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
             ),
           ),
-          
           const SizedBox(height: 8),
-
-          Text(
-            'Time Elapsed: $timeElapsedFormatted', 
-            style: GoogleFonts.poppins(
-              color: Colors.greenAccent, 
-              fontWeight: FontWeight.w600, 
-              fontSize: 16,
-              fontFeatures: const [FontFeature.tabularFigures()], 
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Elapsed: $timeElapsedFormatted',
+                style: GoogleFonts.poppins(
+                  color: Colors.greenAccent,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              Text(
+                'Fee: €$fee',
+                style: GoogleFonts.poppins(
+                  color: Colors.greenAccent,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+            ],
           ),
-          
           const SizedBox(height: 15),
-
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: widget.onEndSession,
+              onPressed: widget.isStopping ? null : widget.onEndSession,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.redAccent,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: Text('End Session', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: widget.isStopping
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text(
+                      'End Session',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
-          )
+          ),
         ],
       ),
     );
