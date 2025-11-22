@@ -14,18 +14,23 @@ class ParkingCard extends StatelessWidget {
     super.key,
     required this.parking,
     required this.onTap,
-    required this.onDelete, required this.allParkings,
+    required this.onDelete,
+    required this.allParkings,
   });
 
-  Future<bool?> _showConfirmDeleteDialog(BuildContext context, List<Parking> allParkings) {
-    final isOnlyParkingInCity = allParkings.where((p) => p.city == parking.city).length == 1;
+  Future<bool?> _showConfirmDeleteDialog(
+    BuildContext context,
+    List<Parking> allParkings,
+  ) {
+    final isOnlyParkingInCity =
+        allParkings.where((p) => p.city == parking.city).length == 1;
 
     return showDialog<bool>(
       context: context,
       builder: (context) {
         return Dialog(
           backgroundColor: Colors.transparent,
-          child: ConstrainedBox( // NEW: Limit width
+          child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 450),
             child: Container(
               padding: const EdgeInsets.all(20),
@@ -40,7 +45,11 @@ class ParkingCard extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(25),
                 boxShadow: const [
-                  BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4)),
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
+                  ),
                 ],
               ),
               child: Column(
@@ -82,10 +91,15 @@ class ParkingCard extends StatelessWidget {
                         onPressed: () => Navigator.of(context).pop(false),
                         style: TextButton.styleFrom(
                           backgroundColor: Colors.white.withOpacity(0.1),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(color: Colors.white.withOpacity(0.3)),
+                            side: BorderSide(
+                              color: Colors.white.withOpacity(0.3),
+                            ),
                           ),
                         ),
                         child: Text(
@@ -102,7 +116,10 @@ class ParkingCard extends StatelessWidget {
                         onPressed: () => Navigator.of(context).pop(true),
                         style: TextButton.styleFrom(
                           backgroundColor: Colors.red.shade700,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                             side: BorderSide(color: Colors.red.shade900),
@@ -128,10 +145,12 @@ class ParkingCard extends StatelessWidget {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     final availableSpots = parking.totalSpots - parking.occupiedSpots;
+
+    final rateUnit = parking.tariffConfig.type == 'FIXED_DAILY' ? '/day' : '/h';
+    final rateDisplay = parking.ratePerHour.toStringAsFixed(2);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -164,7 +183,10 @@ class ParkingCard extends StatelessWidget {
                   ),
                   TextButton(
                     onPressed: () async {
-                      final confirm = await _showConfirmDeleteDialog(context, allParkings);
+                      final confirm = await _showConfirmDeleteDialog(
+                        context,
+                        allParkings,
+                      );
                       if (confirm == true) {
                         onDelete(parking);
                       }
@@ -201,7 +223,7 @@ class ParkingCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Rate: \$${parking.ratePerHour.toStringAsFixed(2)}/h',
+                    'Rate: \$${rateDisplay}${rateUnit}',
                     style: GoogleFonts.poppins(
                       color: Colors.white,
                       fontSize: 14,

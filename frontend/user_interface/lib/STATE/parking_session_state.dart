@@ -1,3 +1,5 @@
+// [FULL REPLACEMENT] parking_session_state.dart
+
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
@@ -91,55 +93,77 @@ String calculateFee(Duration d, TariffConfig config) {
   final totalMinutes = d.inMinutes;
   if (totalMinutes <= 0) return '0.00';
 
+  final hours = totalMinutes / 60.0;
+  double totalCost = 0.0;
+
   if (config.type == 'FIXED_DAILY') {
     return config.dailyRate.toStringAsFixed(2);
   }
 
-  final now = DateTime.now();
-  final currentHourMinute = now.hour * 60 + now.minute;
-
-  final nightStartParts = config.nightStartTime
-      .split(':')
-      .map((e) => int.parse(e))
-      .toList();
-  final nightEndParts = config.nightEndTime
-      .split(':')
-      .map((e) => int.parse(e))
-      .toList();
-
-  final nightStart = nightStartParts[0] * 60 + nightStartParts[1];
-  final nightEnd = nightEndParts[0] * 60 + nightEndParts[1];
-
-  bool isNight;
-  if (nightStart > nightEnd) {
-    isNight = currentHourMinute >= nightStart || currentHourMinute < nightEnd;
-  } else {
-    isNight = currentHourMinute >= nightStart && currentHourMinute < nightEnd;
+  List<Map<String, dynamic>> getFlexRules() {
+    return (config.flexRulesRaw as List<dynamic>?)
+            ?.map((r) => r as Map<String, dynamic>)
+            .toList() ??
+        [];
   }
 
-  double baseRatePerHour = isNight ? config.nightBaseRate : config.dayBaseRate;
+  bool _isNightTime(double hourOfDay, TariffConfig config) {
+    final nightStart =
+        double.tryParse(config.nightStartTime.split(':').first) ?? 22.0;
+    final nightEnd =
+        double.tryParse(config.nightEndTime.split(':').first) ?? 6.0;
 
-  final ratePerMinute = baseRatePerHour / 60.0;
-  double totalCost = 0.0;
+    if (nightStart > nightEnd) {
+      return hourOfDay >= nightStart || hourOfDay < nightEnd;
+    } else {
+      return hourOfDay >= nightStart && hourOfDay < nightEnd;
+    }
+  }
 
-  if (config.type == 'HOURLY_LINEAR') {
-    totalCost = totalMinutes * ratePerMinute;
-  } else if (config.type == 'VARIABLE_COMPLEX') {
-    double totalHours = totalMinutes / 60.0;
-    double currentMultiplier = 1.0;
+  double remainingHours = hours;
+  double currentSimulationHours = 0.0;
+  final List<Map<String, dynamic>> flexRules = getFlexRules();
 
-    for (var rule in config.flexRulesRaw) {
-      if (rule is Map<String, dynamic>) {
-        final durationHours = rule['duration_h'] as int? ?? 0;
-        final multiplier = (rule['multiplier'] as num?)?.toDouble() ?? 1.0;
+  while (remainingHours > 0) {
+    double hourlyRate;
+    double segmentDuration = (remainingHours >= 1.0) ? 1.0 : remainingHours;
 
-        if (totalHours >= durationHours) {
-          currentMultiplier = multiplier;
+    bool isNight = _isNightTime(currentSimulationHours % 24, config);
+    double baseRate = isNight ? config.nightBaseRate : config.dayBaseRate;
+
+    if (config.type == 'HOURLY_LINEAR') {
+      hourlyRate = baseRate;
+    } else if (config.type == 'HOURLY_VARIABLE') {
+      double elapsedTime = hours - remainingHours;
+      double multiplier = 1.0;
+
+      for (var rule in flexRules) {
+        final durationFromHours =
+            (rule['duration_from_hours'] as num?)?.toDouble() ?? 0.0;
+        final durationToHours =
+            (rule['duration_to_hours'] as num?)?.toDouble() ?? double.infinity;
+        final ruleMultiplier = (rule['multiplier'] as num?)?.toDouble() ?? 1.0;
+
+        if (elapsedTime >= durationFromHours && elapsedTime < durationToHours) {
+          multiplier = ruleMultiplier;
+          break;
         }
       }
+
+      hourlyRate = baseRate * multiplier;
+    } else {
+      hourlyRate = 0.0;
     }
 
-    totalCost = totalMinutes * ratePerMinute * currentMultiplier;
+    totalCost += hourlyRate * segmentDuration;
+
+    remainingHours -= segmentDuration;
+    currentSimulationHours += segmentDuration;
+  }
+
+  final double max24hCost = 24.0 * config.dayBaseRate;
+  if (totalCost > max24hCost) {
+    totalCost = max24hCost;
   }
 
   return totalCost.toStringAsFixed(2);

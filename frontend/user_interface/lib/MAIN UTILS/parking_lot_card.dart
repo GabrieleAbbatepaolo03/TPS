@@ -30,14 +30,27 @@ class ParkingLotCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final availableSpots = parkingLot.availableSpaces;
     final availabilityColor = _getAvailabilityColor();
-    final distance = LocationUtils.calculateDistance(userPosition, parkingLot.centerPosition);
+    final distance = LocationUtils.calculateDistance(
+      userPosition,
+      parkingLot.centerPosition,
+    );
+
+    // ⭐ 核心修正：动态确定费率单位和标签
+    final isFixedDaily = parkingLot.tariffConfig.type == 'FIXED_DAILY';
+    final rateUnit = isFixedDaily ? '/day' : '/h';
+    final rateLabel = isFixedDaily ? 'Daily Rate' : 'Hourly Rate';
+    final rateValue = isFixedDaily
+        ? parkingLot.hourlyRate
+        : parkingLot.hourlyRate;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
       decoration: BoxDecoration(
         color: const Color.fromARGB(25, 255, 255, 255),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+        ],
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
@@ -49,9 +62,15 @@ class ParkingLotCard extends StatelessWidget {
               Container(
                 width: 20,
                 decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), bottomLeft: Radius.circular(20)),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    bottomLeft: Radius.circular(20),
+                  ),
                   gradient: LinearGradient(
-                    colors: [availabilityColor.withOpacity(0.7), availabilityColor],
+                    colors: [
+                      availabilityColor.withOpacity(0.7),
+                      availabilityColor,
+                    ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
@@ -90,7 +109,11 @@ class ParkingLotCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(IconlyLight.location, color: Colors.white54, size: 16),
+                          const Icon(
+                            IconlyLight.location,
+                            color: Colors.white54,
+                            size: 16,
+                          ),
                           const SizedBox(width: 6),
                           Flexible(
                             child: Text(
@@ -133,7 +156,7 @@ class ParkingLotCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                '€${parkingLot.hourlyRate.toStringAsFixed(2)}/h',
+                                '€${rateValue.toStringAsFixed(2)}${rateUnit}', // ⭐ 使用动态单位
                                 style: GoogleFonts.poppins(
                                   color: Colors.white,
                                   fontSize: 16,
@@ -141,7 +164,7 @@ class ParkingLotCard extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                'Hourly Rate',
+                                rateLabel, // ⭐ 使用动态标签
                                 style: GoogleFonts.poppins(
                                   color: Colors.white60,
                                   fontSize: 12,
