@@ -8,36 +8,21 @@
 {% endblock %}
 
 {% block content %}
-<div class="mb-8">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+<div style="display: flex; align-items: flex-start; justify-content: center; min-height: 60vh; padding-top: 15vh;">
+    <div class="welcome-card text-center">
+        <h1 class="text-5xl font-bold mb-6 text-center" style="background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
             Welcome to TPS Management System
         </h1>
-        <p class="text-lg text-gray-600 dark:text-gray-300 mb-2">
+        <p class="text-2xl mb-8 text-center">
             {% if user.first_name %}
-                Hello, {{ user.first_name }}!
+                Hello, <span class="font-semibold" style="color: #8b5cf6;">{{ user.first_name }}</span>!
             {% else %}
-                Hello, {{ user.email }}!
+                Hello, <span class="font-semibold" style="color: #8b5cf6;">{{ user.email }}</span>!
             {% endif %}
         </p>
-        <p class="text-gray-500 dark:text-gray-400">
+        <p class="text-lg opacity-80 text-center">
             Use the sidebar navigation to manage parkings, users, vehicles, and sessions.
         </p>
-    </div>
-</div>
-
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Parking Management</h3>
-        <p class="text-gray-500 dark:text-gray-400 text-sm">Manage parking lots and spots</p>
-    </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">User Management</h3>
-        <p class="text-gray-500 dark:text-gray-400 text-sm">Manage system users</p>
-    </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Vehicle Management</h3>
-        <p class="text-gray-500 dark:text-gray-400 text-sm">Manage vehicles and sessions</p>
     </div>
 </div>
 {% endblock %}

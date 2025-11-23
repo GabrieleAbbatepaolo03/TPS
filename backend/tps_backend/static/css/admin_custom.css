@@ -1,14 +1,197 @@
-/* TPS Admin - Glassmorphism Effects */
+/* ================================
+   TPS Admin - Dual Theme Support
+   ================================ */
 
-/* Dynamic gradient background */
+/* ========== LIGHT THEME (DEFAULT) ========== */
+
+/* Background */
 body {
-    background: 
+    background:
+        radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.08), transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.08), transparent 50%),
+        linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+}
+
+/* Welcome card */
+.welcome-card {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.15)) !important;
+    border: 2px solid transparent !important;
+    border-radius: 24px !important;
+    padding: 4rem !important;
+    max-width: 56rem !important;
+    text-align: center !important;
+    box-shadow: 0 20px 60px rgba(139, 92, 246, 0.3) !important;
+    position: relative !important;
+}
+
+.welcome-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 24px;
+    padding: 2px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(59, 130, 246, 0.8));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+/* Sidebar */
+aside {
+    background: #ffffff !important;
+    border-right: 1px solid rgba(139, 92, 246, 0.15) !important;
+}
+
+/* Sidebar items */
+aside nav h2, aside nav h2 * {
+    color: #8b5cf6 !important;
+    font-weight: 700 !important;
+}
+
+aside nav a, aside nav a * {
+    color: #4b5563 !important;
+    font-weight: 500 !important;
+}
+
+aside nav a:hover * {
+    color: #8b5cf6 !important;
+}
+
+/* Header */
+header {
+    background: #ffffff !important;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.15) !important;
+}
+
+/* Cards, tables, modules */
+[class*="bg-white"], table, .module {
+    background: #ffffff !important;
+    border: none !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1) !important;
+}
+
+/* Hide container borders and artifacts */
+main > div,
+main > div > div,
+[class*="container"],
+[class*="wrapper"] {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Search bar - clean styling */
+[type="search"],
+input[placeholder*="search" i],
+input[placeholder*="Type to" i] {
+    background: #ffffff !important;
+    border: 1px solid rgba(139, 92, 246, 0.2) !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+[type="search"]:focus,
+input[placeholder*="search" i]:focus,
+input[placeholder*="Type to" i]:focus {
+    border-color: rgba(139, 92, 246, 0.5) !important;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+}
+
+/* Hide search icon and keyboard shortcut */
+#searchbar-submit,
+button[type="submit"] .material-symbols-outlined,
+form[role="search"] button[type="submit"],
+kbd {
+    display: none !important;
+}
+
+/* Custom search icon - add icon to input background */
+#searchbar,
+input[name="q"],
+input[placeholder*="Type to search" i] {
+    padding-left: 2.5rem !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='rgba(100, 116, 139, 0.7)'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' /%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: 0.75rem center !important;
+    background-size: 1.25rem !important;
+}
+
+/* Table headers */
+thead th {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.1)) !important;
+    color: #1e293b !important;
+    font-weight: 600 !important;
+}
+
+/* Table row hover */
+tbody tr:hover {
+    background: rgba(139, 92, 246, 0.05) !important;
+}
+
+/* Input fields */
+input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+    background: #ffffff !important;
+    border: 1px solid rgba(139, 92, 246, 0.2) !important;
+    color: #1e293b !important;
+}
+
+input:focus, select:focus, textarea:focus {
+    background: #ffffff !important;
+    border-color: rgba(139, 92, 246, 0.5) !important;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+    outline: none !important;
+}
+
+/* Buttons */
+button:not([class*="bg-transparent"]), [type="submit"], .button {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(59, 130, 246, 0.8)) !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2) !important;
+    color: white !important;
+}
+
+button:hover:not([class*="bg-transparent"]), [type="submit"]:hover, .button:hover {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 1), rgba(59, 130, 246, 0.9)) !important;
+    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.3) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(241, 245, 249, 0.5);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(59, 130, 246, 0.4));
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.6), rgba(59, 130, 246, 0.6));
+}
+
+
+/* ========== DARK THEME ========== */
+
+/* Background */
+.dark body,
+html.dark body {
+    background:
         radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent 50%),
         radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.3), transparent 50%),
         radial-gradient(circle at 40% 20%, rgba(59, 130, 246, 0.2), transparent 50%),
         linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1e293b 100%) !important;
     background-size: 200% 200% !important;
     animation: gradientShift 15s ease infinite !important;
+    color: #fff !important;
 }
 
 @keyframes gradientShift {
@@ -17,14 +200,15 @@ body {
 }
 
 /* Rotating light effect */
-body::before {
+.dark body::before,
+html.dark body::before {
     content: '';
     position: fixed;
     top: -50%;
     left: -50%;
     width: 200%;
     height: 200%;
-    background: 
+    background:
         radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
         radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
     animation: rotate 20s linear infinite;
@@ -37,110 +221,347 @@ body::before {
     to { transform: rotate(360deg); }
 }
 
-/* Ensure content above light effects */
+/* Ensure content above effects */
 aside, main, header, nav {
     position: relative;
     z-index: 1;
 }
 
-/* Sidebar glassmorphism */
-aside {
-    background: rgba(15, 23, 42, 0.6) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+/* Welcome card */
+.dark .welcome-card,
+html.dark .welcome-card {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2)) !important;
+    box-shadow: 0 20px 60px rgba(139, 92, 246, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Sidebar */
+.dark aside,
+html.dark aside {
+    background: #1e293b !important;
     border-right: 1px solid rgba(139, 92, 246, 0.2) !important;
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
 }
 
+/* Sidebar items - Dark theme */
+.dark aside nav h2, .dark aside nav h2 *,
+html.dark aside nav h2, html.dark aside nav h2 * {
+    color: #a78bfa !important;
+    font-weight: 700 !important;
+}
+
+.dark aside nav a, .dark aside nav a *,
+html.dark aside nav a, html.dark aside nav a * {
+    color: #9ca3af !important;
+    font-weight: 500 !important;
+}
+
+.dark aside nav a:hover *, html.dark aside nav a:hover * {
+    color: #a78bfa !important;
+}
+
 /* Header */
-header {
-    background: rgba(15, 23, 42, 0.6) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+.dark header,
+html.dark header {
+    background: #1e293b !important;
     border-bottom: 1px solid rgba(139, 92, 246, 0.2) !important;
 }
 
-/* Cards and tables */
-[class*="bg-white"], table, .module {
-    background: rgba(15, 23, 42, 0.5) !important;
-    backdrop-filter: blur(16px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-    border: 1px solid rgba(139, 92, 246, 0.2) !important;
+/* Cards, tables, modules */
+.dark [class*="bg-white"],
+.dark table,
+.dark .module,
+html.dark [class*="bg-white"],
+html.dark table,
+html.dark .module {
+    background: #0f172a !important;
+    border: none !important;
     border-radius: 16px !important;
-    box-shadow: 
-        0 8px 32px 0 rgba(0, 0, 0, 0.37),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+}
+
+/* Search bar - Dark theme */
+.dark [type="search"], .dark input[placeholder*="search" i], .dark input[placeholder*="Type to" i],
+html.dark [type="search"], html.dark input[placeholder*="search" i], html.dark input[placeholder*="Type to" i] {
+    background: #1e293b !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.dark [type="search"]:focus, .dark input[placeholder*="search" i]:focus, .dark input[placeholder*="Type to" i]:focus,
+html.dark [type="search"]:focus, html.dark input[placeholder*="search" i]:focus, html.dark input[placeholder*="Type to" i]:focus {
+    border-color: rgba(139, 92, 246, 0.6) !important;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3) !important;
+}
+
+/* Hide search icon - Dark theme */
+.dark #searchbar-submit,
+.dark button[type="submit"] .material-symbols-outlined,
+.dark form[role="search"] button[type="submit"],
+html.dark #searchbar-submit,
+html.dark button[type="submit"] .material-symbols-outlined,
+html.dark form[role="search"] button[type="submit"] {
+    display: none !important;
+}
+
+/* Custom search icon - Dark theme */
+.dark #searchbar,
+.dark input[name="q"],
+.dark input[placeholder*="Type to search" i],
+html.dark #searchbar,
+html.dark input[name="q"],
+html.dark input[placeholder*="Type to search" i] {
+    padding-left: 2.5rem !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='rgba(255, 255, 255, 0.6)'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' /%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: 0.75rem center !important;
+    background-size: 1.25rem !important;
+}
+
+/* Table headers */
+.dark thead th, html.dark thead th {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.2)) !important;
+    backdrop-filter: blur(10px) !important;
+    color: #fff !important;
 }
 
 /* Table row hover */
-tbody tr:hover {
+.dark tbody tr:hover, html.dark tbody tr:hover {
     background: linear-gradient(90deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.1)) !important;
 }
 
-/* Table header */
-thead th {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.2)) !important;
-    backdrop-filter: blur(10px) !important;
-}
-
 /* Input fields */
-input:not([type="checkbox"]):not([type="radio"]), select, textarea {
-    background: rgba(15, 23, 42, 0.6) !important;
-    backdrop-filter: blur(10px) !important;
+.dark input:not([type="checkbox"]):not([type="radio"]), .dark select, .dark textarea,
+html.dark input:not([type="checkbox"]):not([type="radio"]), html.dark select, html.dark textarea {
+    background: #1e293b !important;
     border: 1px solid rgba(139, 92, 246, 0.3) !important;
     color: #fff !important;
 }
 
-input:focus, select:focus, textarea:focus {
+.dark input:focus, .dark select:focus, .dark textarea:focus,
+html.dark input:focus, html.dark select:focus, html.dark textarea:focus {
     border-color: rgba(139, 92, 246, 0.6) !important;
     box-shadow: 0 0 20px rgba(139, 92, 246, 0.3) !important;
     outline: none !important;
 }
 
-/* Login page - brighter inputs */
-.login input[type="text"],
-.login input[type="email"],
-.login input[type="password"] {
+/* Login page */
+.dark .login input[type="text"], .dark .login input[type="email"], .dark .login input[type="password"],
+html.dark .login input[type="text"], html.dark .login input[type="email"], html.dark .login input[type="password"] {
     background: rgba(255, 255, 255, 0.1) !important;
     border: 1px solid rgba(139, 92, 246, 0.5) !important;
     color: #fff !important;
 }
 
-.login input:focus {
+.dark .login input:focus, html.dark .login input:focus {
     background: rgba(255, 255, 255, 0.15) !important;
     border-color: rgba(139, 92, 246, 0.8) !important;
 }
 
 /* Buttons */
-button:not([class*="bg-transparent"]), [type="submit"], .button {
+.dark button:not([class*="bg-transparent"]), .dark [type="submit"], .dark .button,
+html.dark button:not([class*="bg-transparent"]), html.dark [type="submit"], html.dark .button {
     background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(59, 130, 246, 0.3)) !important;
     backdrop-filter: blur(10px) !important;
     border: 1px solid rgba(139, 92, 246, 0.6) !important;
     box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3) !important;
 }
 
-button:hover:not([class*="bg-transparent"]), [type="submit"]:hover, .button:hover {
+.dark button:hover:not([class*="bg-transparent"]), .dark [type="submit"]:hover, .dark .button:hover,
+html.dark button:hover:not([class*="bg-transparent"]), html.dark [type="submit"]:hover, html.dark .button:hover {
     background: linear-gradient(135deg, rgba(139, 92, 246, 0.6), rgba(59, 130, 246, 0.5)) !important;
     box-shadow: 0 8px 24px rgba(139, 92, 246, 0.5) !important;
     transform: translateY(-2px) !important;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-}
-
-::-webkit-scrollbar-track {
+/* Scrollbar - Dark theme */
+.dark ::-webkit-scrollbar-track, html.dark ::-webkit-scrollbar-track {
     background: rgba(15, 23, 42, 0.5);
-    border-radius: 10px;
 }
 
-::-webkit-scrollbar-thumb {
+.dark ::-webkit-scrollbar-thumb, html.dark ::-webkit-scrollbar-thumb {
     background: linear-gradient(135deg, rgba(139, 92, 246, 0.5), rgba(59, 130, 246, 0.5));
-    border-radius: 10px;
 }
 
-::-webkit-scrollbar-thumb:hover {
+.dark ::-webkit-scrollbar-thumb:hover, html.dark ::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(135deg, rgba(139, 92, 246, 0.7), rgba(59, 130, 246, 0.7));
 }
+
+/* Text colors */
+.dark td, .dark th, .dark p, .dark label, .dark span:not([style*="color"]),
+html.dark td, html.dark th, html.dark p, html.dark label, html.dark span:not([style*="color"]) {
+    color: #e2e8f0 !important;
+}
+
+.dark a, html.dark a {
+    color: #a78bfa !important;
+}
+
+.dark a:hover, html.dark a:hover {
+    color: #60a5fa !important;
+}
+
+/* ===== COMPLETE LIST PAGE DARK THEME OVERRIDES ===== */
+
+/* Main container backgrounds */
+.dark main,
+html.dark main {
+    background: transparent !important;
+}
+
+/* Remove background from ALL container divs to prevent double-layer effect */
+.dark div, html.dark div {
+    background: transparent !important;
+}
+
+/* Table styling */
+.dark td, html.dark td {
+    background: transparent !important;
+    border-color: rgba(139, 92, 246, 0.15) !important;
+    color: #e2e8f0 !important;
+}
+
+.dark tr, html.dark tr {
+    border-color: rgba(139, 92, 246, 0.1) !important;
+}
+
+.dark tbody tr:nth-child(even), html.dark tbody tr:nth-child(even) {
+    background: rgba(139, 92, 246, 0.05) !important;
+}
+
+/* Text and border colors */
+.dark [class*="text-gray"], html.dark [class*="text-gray"] {
+    color: #e2e8f0 !important;
+}
+
+.dark [class*="border-gray"], html.dark [class*="border-gray"] {
+    border-color: rgba(139, 92, 246, 0.2) !important;
+}
+
+.dark [class*="divide-gray"] > *, html.dark [class*="divide-gray"] > * {
+    border-color: rgba(139, 92, 246, 0.15) !important;
+}
+
+/* Hover and focus states */
+.dark li:hover, .dark [class*="hover:bg-"]:hover,
+html.dark li:hover, html.dark [class*="hover:bg-"]:hover {
+    background: rgba(139, 92, 246, 0.15) !important;
+}
+
+.dark *:focus, html.dark *:focus {
+    outline-color: rgba(139, 92, 246, 0.5) !important;
+}
+
+/* Pagination */
+.dark .pagination, .dark [class*="paginator"],
+html.dark .pagination, html.dark [class*="paginator"] {
+    background: rgba(15, 23, 42, 0.5) !important;
+}
+
+.dark .pagination a, .dark .pagination span,
+html.dark .pagination a, html.dark .pagination span {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border-color: rgba(139, 92, 246, 0.3) !important;
+    color: #e2e8f0 !important;
+}
+
+.dark .pagination a:hover, html.dark .pagination a:hover {
+    background: rgba(139, 92, 246, 0.3) !important;
+}
+
+/* Other components */
+.dark .messagelist, .dark .messages, html.dark .messagelist, html.dark .messages {
+    background: rgba(15, 23, 42, 0.8) !important;
+    border-color: rgba(139, 92, 246, 0.3) !important;
+}
+
+.dark .help, .dark .helptext, html.dark .help, html.dark .helptext {
+    color: #94a3b8 !important;
+}
+
+.dark .selected, .dark [aria-selected="true"], .dark .active,
+html.dark .selected, html.dark [aria-selected="true"], html.dark .active {
+    background: rgba(139, 92, 246, 0.2) !important;
+}
+
+.dark ::placeholder, html.dark ::placeholder {
+    color: #64748b !important;
+}
+
+.dark ::selection, html.dark ::selection {
+    background: rgba(139, 92, 246, 0.4) !important;
+    color: #fff !important;
+}
+
+/* ===== REMOVE VISUAL ARTIFACTS ===== */
+
+/* Clean up borders and artifacts */
+table {
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    border: none !important;
+}
+
+td, th {
+    border: none !important;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.1) !important;
+}
+
+.dark td, .dark th, html.dark td, html.dark th {
+    border-bottom: 1px solid rgba(139, 92, 246, 0.15) !important;
+}
+
+td input[type="checkbox"], th input[type="checkbox"] {
+    margin: 0 auto !important;
+    display: block !important;
+}
+
+main, div, [class*="overflow"], [class*="rounded"], [class*="shadow"], [class*="border"] {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Focus states */
+*:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2) !important;
+}
+
+.dark *:focus-visible, html.dark *:focus-visible {
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3) !important;
+}
+
+/* ===== FIX ACTIONS BAR OVERLAP & STYLING ===== */
+
+/* Add small spacing to content area */
+#content,
+#content-main,
+.result-list-wrapper {
+    padding-bottom: 1.5rem !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Actions bar styling - Light theme ONLY */
+body:not(.dark) .changelist-actions,
+body:not(.dark) div[class*="actions"].bg-primary-900,
+body:not(.dark) div[class*="actions"][class*="bg-primary"],
+body:not(.dark) #changelist-actions-wrapper {
+    background: #f9fafb !important;
+    border-top: 2px solid rgba(139, 92, 246, 0.3) !important;
+    padding: 1rem 1.5rem !important;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Actions bar styling - Dark theme ONLY */
+.dark .changelist-actions,
+.dark div[class*="actions"].bg-primary-900,
+.dark div[class*="actions"][class*="bg-primary"],
+html.dark .changelist-actions,
+html.dark div[class*="actions"].bg-primary-900,
+html.dark div[class*="actions"][class*="bg-primary"] {
+    background: #1e293b !important;
+    border-top: 2px solid rgba(139, 92, 246, 0.3) !important;
+    padding: 1rem 1.5rem !important;
+}
+
