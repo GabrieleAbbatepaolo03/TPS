@@ -632,3 +632,29 @@ html.dark .changelist-actions span[class] {
     color: #e2e8f0 !important;
 }
 
+/* === Fix Unfold bottom bulk actions bar background (dark theme) === */
+
+/* 整个底部操作栏外层容器 */
+.dark #changelist-actions-wrapper,
+html.dark #changelist-actions-wrapper {
+    background: #0f172a !important;              /* 和列表背景保持一致的深色 */
+    box-shadow: none !important;                 /* 去掉可能的白色投影 */
+}
+
+/* 内层 .changelist-actions 容器防止再涂白 */
+.dark #changelist-actions-wrapper .changelist-actions,
+html.dark #changelist-actions-wrapper .changelist-actions {
+    background: transparent !important;
+}
+
+/* 确保底部栏里的文字和控件在深色背景上可读 */
+.dark #changelist-actions-wrapper select,
+.dark #changelist-actions-wrapper label,
+.dark #changelist-actions-wrapper span,
+.dark #changelist-actions-wrapper button,
+html.dark #changelist-actions-wrapper select,
+html.dark #changelist-actions-wrapper label,
+html.dark #changelist-actions-wrapper span,
+html.dark #changelist-actions-wrapper button {
+    color: #e2e8f0 !important;
+}
