@@ -43,17 +43,29 @@ aside {
     border-right: 1px solid rgba(139, 92, 246, 0.15) !important;
 }
 
-/* Sidebar items */
-aside nav h2, aside nav h2 * {
+/* Sidebar items - Maximum priority */
+nav#nav-sidebar-inner h2,
+nav#nav-sidebar-inner h2[class],
+nav#nav-sidebar-inner h2[class] *,
+aside nav h2,
+aside nav h2[class],
+aside nav h2[class] * {
     color: #8b5cf6 !important;
     font-weight: 700 !important;
 }
 
-aside nav a, aside nav a * {
+nav#nav-sidebar-inner a[class],
+nav#nav-sidebar-inner a[class] span,
+nav#nav-sidebar-inner a[class] *,
+aside nav a,
+aside nav a[class],
+aside nav a[class] span,
+aside nav a[class] * {
     color: #4b5563 !important;
     font-weight: 500 !important;
 }
 
+nav#nav-sidebar-inner a:hover *,
 aside nav a:hover * {
     color: #8b5cf6 !important;
 }
@@ -242,20 +254,45 @@ html.dark aside {
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
 }
 
-/* Sidebar items - Dark theme */
-.dark aside nav h2, .dark aside nav h2 *,
-html.dark aside nav h2, html.dark aside nav h2 * {
+/* Sidebar items - Dark theme - Maximum priority */
+.dark nav#nav-sidebar-inner h2,
+.dark nav#nav-sidebar-inner h2[class],
+.dark nav#nav-sidebar-inner h2[class] *,
+.dark aside nav h2,
+.dark aside nav h2[class],
+.dark aside nav h2[class] *,
+html.dark nav#nav-sidebar-inner h2,
+html.dark nav#nav-sidebar-inner h2[class],
+html.dark nav#nav-sidebar-inner h2[class] *,
+html.dark aside nav h2,
+html.dark aside nav h2[class],
+html.dark aside nav h2[class] * {
     color: #a78bfa !important;
     font-weight: 700 !important;
 }
 
-.dark aside nav a, .dark aside nav a *,
-html.dark aside nav a, html.dark aside nav a * {
+.dark nav#nav-sidebar-inner a[class],
+.dark nav#nav-sidebar-inner a[class] span,
+.dark nav#nav-sidebar-inner a[class] *,
+.dark aside nav a,
+.dark aside nav a[class],
+.dark aside nav a[class] span,
+.dark aside nav a[class] *,
+html.dark nav#nav-sidebar-inner a[class],
+html.dark nav#nav-sidebar-inner a[class] span,
+html.dark nav#nav-sidebar-inner a[class] *,
+html.dark aside nav a,
+html.dark aside nav a[class],
+html.dark aside nav a[class] span,
+html.dark aside nav a[class] * {
     color: #9ca3af !important;
     font-weight: 500 !important;
 }
 
-.dark aside nav a:hover *, html.dark aside nav a:hover * {
+.dark nav#nav-sidebar-inner a:hover *,
+.dark aside nav a:hover *,
+html.dark nav#nav-sidebar-inner a:hover *,
+html.dark aside nav a:hover * {
     color: #a78bfa !important;
 }
 
@@ -560,8 +597,38 @@ body:not(.dark) #changelist-actions-wrapper {
 html.dark .changelist-actions,
 html.dark div[class*="actions"].bg-primary-900,
 html.dark div[class*="actions"][class*="bg-primary"] {
-    background: #1e293b !important;
-    border-top: 2px solid rgba(139, 92, 246, 0.3) !important;
+    background: #0f172a !important;
+    border-top: 2px solid rgba(139, 92, 246, 0.4) !important;
     padding: 1rem 1.5rem !important;
+}
+
+/* Better text contrast for dark theme actions - Maximum priority */
+.dark .changelist-actions select,
+.dark .changelist-actions label,
+.dark .changelist-actions span,
+.dark .changelist-actions button,
+.dark div[class*="actions"] select,
+.dark div[class*="actions"] label,
+.dark div[class*="actions"] span,
+.dark div[class*="actions"] button,
+html.dark .changelist-actions select,
+html.dark .changelist-actions label,
+html.dark .changelist-actions span,
+html.dark .changelist-actions button,
+html.dark div[class*="actions"] select,
+html.dark div[class*="actions"] label,
+html.dark div[class*="actions"] span,
+html.dark div[class*="actions"] button {
+    color: #e2e8f0 !important;
+}
+
+/* Force all nested elements too */
+.dark .changelist-actions select[class],
+.dark .changelist-actions label[class],
+.dark .changelist-actions span[class],
+html.dark .changelist-actions select[class],
+html.dark .changelist-actions label[class],
+html.dark .changelist-actions span[class] {
+    color: #e2e8f0 !important;
 }
 
