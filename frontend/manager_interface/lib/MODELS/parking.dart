@@ -8,7 +8,7 @@ class Parking {
   final int totalSpots;
   final int occupiedSpots;
   final double ratePerHour;
-  final TariffConfig tariffConfig; 
+  final String tariffConfigJson; 
   final double? latitude;
   final double? longitude;
 
@@ -20,10 +20,19 @@ class Parking {
     required this.totalSpots,
     required this.occupiedSpots,
     required this.ratePerHour,
-    required this.tariffConfig,
+    required this.tariffConfigJson,
     this.latitude,
     this.longitude,
   });
+
+  // --- GETTER PER LA CONVERSIONE AL VOLO ---
+  // Questo risolve l'errore che avevi: ora accedi all'oggetto TariffConfig tramite questo getter.
+  TariffConfig get tariffConfig {
+    if (tariffConfigJson.isEmpty) {
+        return Parking.defaultTariffConfig;
+    }
+    return TariffConfig.fromJson(tariffConfigJson);
+  }
 
   // --- STATIC GETTERS AND UTILS  ---
   
@@ -58,10 +67,8 @@ class Parking {
   // --- FACTORY CONSTRUCTOR ---
   
   factory Parking.fromJson(Map<String, dynamic> json) {
-    final dynamic rawTariffJson = json['tariff_config_json'];
-    final TariffConfig config = (rawTariffJson is String && rawTariffJson.isNotEmpty)
-        ? TariffConfig.fromJson(rawTariffJson)
-        : Parking.defaultTariffConfig;
+    final String rawTariffJson = json['tariff_config_json'] ?? '';
+    // NOTA: Non decodifichiamo più TariffConfig qui, la memorizziamo come stringa.
 
     return Parking(
       id: json['id'] as int,
@@ -75,7 +82,8 @@ class Parking {
           ? json['occupied_spots'] as int
           : (int.tryParse('${json['occupied_spots']}') ?? 0),
       ratePerHour: _parseRate(json['rate'] ?? json['rate_per_hour']),
-      tariffConfig: config, // Use the safely derived config object
+      // Passiamo la stringa grezza
+      tariffConfigJson: rawTariffJson, 
       latitude: _parseNullableDouble(json['latitude']),
       longitude: _parseNullableDouble(json['longitude']),
     );
@@ -94,7 +102,8 @@ class Parking {
       'rate': ratePerHour,
       'latitude': latitude,
       'longitude': longitude,
-      'tariff_config_json': tariffConfig.toJson(), 
+      // Usiamo la stringa JSON grezza o la generiamo dall'oggetto TariffConfig
+      'tariff_config_json': tariffConfigJson.isNotEmpty ? tariffConfigJson : tariffConfig.toJson(), 
     };
   }
 

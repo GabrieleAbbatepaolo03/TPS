@@ -16,9 +16,9 @@ class VehicleAdminForm(forms.ModelForm):
 @admin.register(Vehicle)
 class VehicleAdmin(ModelAdmin):
     form = VehicleAdminForm
-    list_display = ('plate', 'name', 'user') 
+    list_display = ('plate', 'name', 'user', 'is_favorite')
     search_fields = ('plate', 'user__email', 'name')
-    list_filter = ('name',) 
+    list_filter = ('name', 'is_favorite')
 
 @admin.register(ParkingSession)
 class ParkingSessionAdmin(ModelAdmin):

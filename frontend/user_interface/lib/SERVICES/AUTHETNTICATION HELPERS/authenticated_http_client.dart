@@ -73,14 +73,22 @@ class AuthenticatedHttpClient {
       final headers = await _getAuthHeaders(currentToken);
       final bodyString = body != null ? json.encode(body) : null;
       
+      // Aggiunge l'header JSON solo se c'è un corpo (necessario per DRF)
+      if (bodyString != null) {
+          headers['Content-Type'] = 'application/json';
+      }
+
       Future<http.Response> execute() {
           if (method == 'POST') {
               return http.post(url, headers: headers, body: bodyString);
           } else if (method == 'PUT') {
               return http.put(url, headers: headers, body: bodyString);
+          } else if (method == 'PATCH') { // <--- NUOVO BLOCCO PATCH
+              return http.patch(url, headers: headers, body: bodyString); 
           } else if (method == 'DELETE') {
               return http.delete(url, headers: headers);
           }
+          // Questo è il fallback per GET, che viene usato se il metodo non corrisponde
           return http.get(url, headers: headers);
       }
       
@@ -109,6 +117,8 @@ class AuthenticatedHttpClient {
   Future<http.Response> post(Uri url, {Object? body}) => _sendRequest(url, 'POST', body: body);
 
   Future<http.Response> put(Uri url, {Object? body}) => _sendRequest(url, 'PUT', body: body);
+
+  Future<http.Response> patch(Uri url, {Object? body}) => _sendRequest(url, 'PATCH', body: body);
 
   Future<http.Response> delete(Uri url) => _sendRequest(url, 'DELETE');
 }

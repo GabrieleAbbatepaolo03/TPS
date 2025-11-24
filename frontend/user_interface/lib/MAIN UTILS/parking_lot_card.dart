@@ -30,18 +30,38 @@ class ParkingLotCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final availableSpots = parkingLot.availableSpaces;
     final availabilityColor = _getAvailabilityColor();
+    
+    // Calcolo distanza (assumendo che LocationUtils esista)
     final distance = LocationUtils.calculateDistance(
       userPosition,
       parkingLot.centerPosition,
     );
 
-    // ⭐ 核心修正：动态确定费率单位和标签
-    final isFixedDaily = parkingLot.tariffConfig.type == 'FIXED_DAILY';
-    final rateUnit = isFixedDaily ? '/day' : '/h';
-    final rateLabel = isFixedDaily ? 'Daily Rate' : 'Hourly Rate';
-    final rateValue = isFixedDaily
-        ? parkingLot.hourlyRate
-        : parkingLot.hourlyRate;
+    // ⭐ LOGICA DI VISUALIZZAZIONE TARIFFA AGGIORNATA
+    // Recuperiamo la configurazione dall'oggetto decodificato
+    final config = parkingLot.tariffConfig;
+    
+    String priceDisplay;
+    String labelDisplay;
+
+    switch (config.type) {
+      case 'FIXED_DAILY':
+        priceDisplay = '€${config.dailyRate.toStringAsFixed(2)}/day';
+        labelDisplay = 'Flat Rate';
+        break;
+      case 'HOURLY_LINEAR':
+        priceDisplay = '€${config.dayBaseRate.toStringAsFixed(2)}/h';
+        labelDisplay = 'Hourly Rate';
+        break;
+      case 'HOURLY_VARIABLE':
+        // Per la variabile, mostriamo la base o una dicitura specifica
+        priceDisplay = 'Variable'; // Oppure "From €..."
+        labelDisplay = 'Check Details';
+        break;
+      default:
+        priceDisplay = 'N/A';
+        labelDisplay = 'Rate';
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
@@ -59,6 +79,7 @@ class ParkingLotCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Barra colorata (Disponibilità)
               Container(
                 width: 20,
                 decoration: BoxDecoration(
@@ -76,12 +97,15 @@ class ParkingLotCard extends StatelessWidget {
                   ),
                 ),
               ),
+              
+              // Contenuto Card
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Riga 1: Nome e Distanza
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -107,6 +131,8 @@ class ParkingLotCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 4),
+                      
+                      // Riga 2: Indirizzo
                       Row(
                         children: [
                           const Icon(
@@ -129,9 +155,12 @@ class ParkingLotCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 12),
+                      
+                      // Riga 3: Spots e Tariffa
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          // Colonna Spots
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -152,11 +181,13 @@ class ParkingLotCard extends StatelessWidget {
                               ),
                             ],
                           ),
+                          
+                          // Colonna Tariffa (Dinamica)
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                '€${rateValue.toStringAsFixed(2)}${rateUnit}', // ⭐ 使用动态单位
+                                priceDisplay, // Stringa formattata
                                 style: GoogleFonts.poppins(
                                   color: Colors.white,
                                   fontSize: 16,
@@ -164,7 +195,7 @@ class ParkingLotCard extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                rateLabel, // ⭐ 使用动态标签
+                                labelDisplay, // Etichetta dinamica
                                 style: GoogleFonts.poppins(
                                   color: Colors.white60,
                                   fontSize: 12,

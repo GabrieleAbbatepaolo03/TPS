@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:iconly/iconly.dart';
-import 'package:user_interface/MAIN UTILS/app_sizes.dart';
-import 'package:user_interface/MAIN UTILS/page_title.dart';
+import 'package:user_interface/MAIN%20UTILS/app_sizes.dart';
+import 'package:user_interface/MAIN%20UTILS/page_title.dart';
 import 'package:user_interface/MODELS/parking_session.dart';
 import 'package:user_interface/SERVICES/parking_session_service.dart';
 import 'package:intl/intl.dart';
@@ -12,7 +11,8 @@ import 'package:user_interface/MODELS/parking_lot.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:user_interface/STATE/parking_session_state.dart';
 import 'package:user_interface/STATE/payment_state.dart';
-import 'package:user_interface/MODELS/tariff_config.dart';
+// Importa i widget che abbiamo creato (assicurati che i file esistano)
+import 'utils/limited_history_list.dart'; 
 
 class SessionsScreen extends ConsumerStatefulWidget {
   const SessionsScreen({super.key});
@@ -24,7 +24,7 @@ class SessionsScreen extends ConsumerStatefulWidget {
 class _SessionsScreenState extends ConsumerState<SessionsScreen> {
   final ParkingSessionService _sessionService = ParkingSessionService();
 
-  late Future<List<ParkingSession>> _sessionsFuture;
+  late Future<List<ParkingSession>> _allSessionsFuture;
   bool _isStopping = false;
 
   @override
@@ -35,19 +35,20 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
 
   void _loadSessions() {
     setState(() {
-      _sessionsFuture = _sessionService.fetchSessions(onlyActive: false);
+      // 🚨 CORREZIONE QUI: Rimuovi 'active: false'. 
+      // Ora scarica TUTTE le sessioni (attive e storiche).
+      _allSessionsFuture = _sessionService.fetchSessions(); 
     });
 
-    _sessionsFuture.then((sessions) {
+    _allSessionsFuture.then((sessions) {
+      // Cerca se c'è una sessione attiva nella lista scaricata
       final active = sessions.where((s) => s.isActive).firstOrNull;
 
       if (active != null) {
-        final config =
-            active.parkingLot?.tariffConfig ?? ParkingLot.defaultTariffConfig;
+        // Se trovata, sincronizza il controller locale
+        final config = active.parkingLot?.tariffConfig ?? ParkingLot.defaultTariffConfig;
 
-        ref
-            .read(parkingControllerProvider.notifier)
-            .start(
+        ref.read(parkingControllerProvider.notifier).start(
               sessionId: active.id,
               vehicleId: active.vehicle!.id,
               parkingLotId: active.parkingLot!.id,
@@ -55,8 +56,12 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
               tariffConfig: config,
             );
       } else {
-        ref.read(parkingControllerProvider.notifier).reset();
-        ref.read(paymentProvider.notifier).resetPreAuthorization();
+        // Se non ci sono sessioni attive nel backend, resetta lo stato locale
+        // (Utile se la sessione è scaduta o chiusa altrove)
+        if (ref.read(parkingControllerProvider).active) {
+             ref.read(parkingControllerProvider.notifier).reset();
+             ref.read(paymentProvider.notifier).resetPreAuthorization();
+        }
       }
     });
   }
@@ -65,28 +70,24 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
     if (_isStopping) return;
     setState(() => _isStopping = true);
 
-    final activeState = ref.read(parkingControllerProvider);
-    final config = activeState.tariffConfig ?? ParkingLot.defaultTariffConfig;
-
-    final elapsed =
-        ref.read(parkingElapsedProvider).valueOrNull ?? Duration.zero;
-
-    final feeStr = calculateFee(elapsed, config);
-    final roundedFee = double.parse(feeStr);
-
+    // Invia la richiesta di stop
     final endedSession = await _sessionService.endSession(sessionId);
 
     if (mounted && endedSession != null) {
-      await ref.read(paymentProvider.notifier).charge(roundedFee);
+      // Usa il costo totale restituito dal server
+      final finalCost = endedSession.totalCost ?? 0.0;
+      
+      await ref.read(paymentProvider.notifier).charge(finalCost);
 
       ref.read(parkingControllerProvider.notifier).reset();
       ref.read(paymentProvider.notifier).resetPreAuthorization();
 
-      _loadSessions();
+      _loadSessions(); // Ricarica la lista per aggiornare la UI
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Parking stopped. Charged €${roundedFee.toStringAsFixed(2)}',
+            'Parking stopped. Charged €${finalCost.toStringAsFixed(2)}',
           ),
         ),
       );
@@ -112,7 +113,7 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
         decoration: AppTheme.backgroundGradientDecoration,
         child: SafeArea(
           child: FutureBuilder<List<ParkingSession>>(
-            future: _sessionsFuture,
+            future: _allSessionsFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
@@ -130,15 +131,29 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
 
               final List<ParkingSession> allSessions = snapshot.data ?? [];
 
+              // Filtra la sessione attiva basandosi sull'ID nello stato o sul flag isActive
               final List<ParkingSession> activeSessionList = activeState.active
-                  ? allSessions
-                        .where((s) => s.id == activeState.sessionId)
-                        .toList()
+                  ? allSessions.where((s) => s.id == activeState.sessionId).toList()
                   : [];
+              
+              // Se lo stato locale non è attivo ma ne troviamo una attiva nel DB, mostriamola
+              // (Safety check per casi di desincronizzazione)
+              if (!activeState.active && activeSessionList.isEmpty) {
+                  final dbActive = allSessions.where((s) => s.isActive).toList();
+                  if (dbActive.isNotEmpty) {
+                      // Nota: Idealmente dovremmo aggiornare lo stato qui, ma evitiamo loop nel build
+                      // Usiamo quella del DB per la visualizzazione
+                      activeSessionList.addAll(dbActive);
+                  }
+              }
 
+              // Filtra la cronologia (sessioni non attive)
               final historySessions = allSessions
                   .where((s) => !s.isActive)
                   .toList();
+              
+              // Prepara la lista limitata per il widget
+              final List<ParkingSession> limitedHistory = historySessions.take(3).toList();
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(20.0),
@@ -147,13 +162,21 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
                   children: [
                     const PageTitle(title: 'Sessions'),
                     const SizedBox(height: 30),
+                    
                     _buildSectionTitle(context, 'Active Sessions'),
                     const SizedBox(height: 15),
                     _buildActiveSessionsList(activeSessionList),
+                    
                     const SizedBox(height: 30),
+                    
                     _buildSectionTitle(context, 'History'),
                     const SizedBox(height: 15),
-                    _buildHistorySessionsList(historySessions),
+                    
+                    // Usa il widget LimitedHistoryList
+                    LimitedHistoryList(
+                      sessions: limitedHistory,
+                      totalCount: historySessions.length,
+                    ),
                   ],
                 ),
               );
@@ -194,88 +217,11 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
       isStopping: _isStopping,
     );
   }
-
-  Widget _buildHistorySessionsList(List<ParkingSession> sessions) {
-    if (sessions.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 20.0),
-        child: Center(
-          child: Text(
-            'History is empty.',
-            style: GoogleFonts.poppins(color: Colors.white54),
-          ),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: sessions.length,
-      itemBuilder: (context, index) {
-        return _buildHistorySessionCard(context, session: sessions[index]);
-      },
-    );
-  }
-
-  Widget _buildHistorySessionCard(
-    BuildContext context, {
-    required ParkingSession session,
-  }) {
-    final lotName = session.parkingLot?.name ?? 'Unknown Lot';
-    final vehiclePlate = session.vehicle?.plate ?? 'N/A';
-    final cost = session.totalCost != null
-        ? '€${session.totalCost!.toStringAsFixed(2)}'
-        : 'N/A';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(15, 255, 255, 255),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: const Icon(
-          IconlyBold.calendar,
-          color: Colors.white70,
-          size: 30,
-        ),
-        title: Text(
-          lotName,
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-        subtitle: Text(
-          'Vehicle: $vehiclePlate | Ended: ${session.endTime != null ? DateFormat('dd MMM, HH:mm').format(session.endTime!) : 'N/A'}',
-          style: GoogleFonts.poppins(color: Colors.white60, fontSize: 13),
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Cost',
-              style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12),
-            ),
-            Text(
-              cost,
-              style: GoogleFonts.poppins(
-                color: Colors.greenAccent,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
+// ---------------------------------------------------------------------------
+// ActiveSessionCard Widget (Definito qui o in un file separato utils/active_session_card.dart)
+// ---------------------------------------------------------------------------
 class ActiveSessionCard extends ConsumerStatefulWidget {
   final ParkingSession session;
   final VoidCallback onEndSession;
@@ -295,42 +241,36 @@ class ActiveSessionCard extends ConsumerStatefulWidget {
 class _ActiveSessionCardState extends ConsumerState<ActiveSessionCard> {
   @override
   Widget build(BuildContext context) {
+    // Usiamo il provider per il tempo trascorso, MA per il costo usiamo il prepaidCost statico
+    // dato che nel nuovo sistema il costo è fisso/prepagato.
     final elapsedTimeAsync = ref.watch(parkingElapsedProvider);
-    final config =
-        ref.watch(parkingControllerProvider).tariffConfig ??
-        ParkingLot.defaultTariffConfig;
-
-    final fee = elapsedTimeAsync.when(
-      data: (d) => calculateFee(d, config),
-      loading: () => '0.00',
-      error: (_, __) => 'N/A',
-    );
-
+    
     final timeElapsedFormatted = elapsedTimeAsync.when(
-      data: (d) => formatDuration(d),
+      data: (d) => _formatDuration(d), // Usa helper locale o importato
       loading: () => '--:--:--',
       error: (_, __) => 'N/A',
     );
 
     final lotName = widget.session.parkingLot?.name ?? 'Unknown Lot';
     final vehiclePlate = widget.session.vehicle?.plate ?? 'N/A';
+    
+    // 🚨 Visualizza il costo prepagato (o totalCost se la sessione ha quel campo popolato)
+    final displayCost = widget.session.prepaidCost > 0 
+        ? widget.session.prepaidCost 
+        : (widget.session.totalCost ?? 0.0);
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(25, 255, 255, 255),
+      decoration: BoxDecoration( 
+        color: Colors.white12,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white24, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(
-              IconlyBold.time_circle,
-              color: Colors.greenAccent,
-              size: 40,
-            ),
             title: Text(
               lotName,
               style: GoogleFonts.poppins(
@@ -357,8 +297,9 @@ class _ActiveSessionCardState extends ConsumerState<ActiveSessionCard> {
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
+              // Mostra il costo prepagato
               Text(
-                'Fee: €$fee',
+                'Paid: €${displayCost.toStringAsFixed(2)}',
                 style: GoogleFonts.poppins(
                   color: Colors.greenAccent,
                   fontWeight: FontWeight.w600,
@@ -367,6 +308,17 @@ class _ActiveSessionCardState extends ConsumerState<ActiveSessionCard> {
               ),
             ],
           ),
+          
+          // Visualizza l'orario di fine pianificato
+          if (widget.session.plannedEndTime != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+                'Expires at: ${DateFormat('HH:mm').format(widget.session.plannedEndTime!)}',
+                style: GoogleFonts.poppins(color: Colors.orangeAccent, fontSize: 14),
+            ),
+          ),
+
           const SizedBox(height: 15),
           SizedBox(
             width: double.infinity,
@@ -389,7 +341,7 @@ class _ActiveSessionCardState extends ConsumerState<ActiveSessionCard> {
                       ),
                     )
                   : Text(
-                      'End Session',
+                      'End Session (No Refund)',
                       style: GoogleFonts.poppins(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -400,5 +352,13 @@ class _ActiveSessionCardState extends ConsumerState<ActiveSessionCard> {
         ],
       ),
     );
+  }
+  
+  String _formatDuration(Duration d) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = twoDigits(d.inHours);
+    final minutes = twoDigits(d.inMinutes.remainder(60));
+    final seconds = twoDigits(d.inSeconds.remainder(60));
+    return "$hours:$minutes:$seconds";
   }
 }

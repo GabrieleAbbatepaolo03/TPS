@@ -13,12 +13,15 @@ class ParkingAdmin(ModelAdmin):
     list_display = (
         'name', 'city', 'address', 
         'latitude', 'longitude',
-        'total_spots', 'available_spots', 'rate_per_hour'
+        'total_spots', 'available_spots', 
+        'rate_per_hour',
+        'tariff_config_json'
     )
     search_fields = ('name', 'city', 'address')
     fields = (
         'name', 'city', 'address', 'rate_per_hour', 
-        'latitude', 'longitude'
+        'latitude', 'longitude',
+        'tariff_config_json' 
     )
 
 @admin.register(Spot)

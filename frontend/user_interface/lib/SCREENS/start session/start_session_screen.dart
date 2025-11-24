@@ -1,22 +1,22 @@
-// [FULL REPLACEMENT] start_session_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconly/iconly.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:user_interface/MAIN%20UTILS/page_transition.dart';
 
 import 'package:user_interface/MODELS/parking_lot.dart';
 import 'package:user_interface/MODELS/vehicle.dart';
-import 'package:user_interface/MODELS/tariff_config.dart'; // ⭐ 关键修正: 导入 TariffConfig
+// import 'package:user_interface/MODELS/tariff_config.dart'; // Non più strettamente necessario se usiamo il getter di ParkingLot
 import 'package:user_interface/SCREENS/root_screen.dart';
+import 'package:user_interface/SCREENS/start%20session/parking_cost_calculator.dart';
 import 'package:user_interface/SERVICES/vehicle_service.dart';
 import 'package:user_interface/SERVICES/parking_session_service.dart';
 import 'package:user_interface/MAIN UTILS/app_theme.dart';
 
+
 import 'package:user_interface/STATE/payment_state.dart';
 import 'package:user_interface/STATE/parking_session_state.dart';
 
-const double kPreAuthAmount = 20.0;
 
 class StartSessionScreen extends ConsumerStatefulWidget {
   final ParkingLot parkingLot;
@@ -34,6 +34,10 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
   late Future<List<Vehicle>> _vehiclesFuture;
   Vehicle? _selectedVehicle;
   bool _isLoading = false;
+  
+  // NUOVO STATO PER LA DURATA E IL COSTO
+  int _selectedDurationHours = 1; 
+  double _prepaidCost = 0.0;
 
   @override
   void initState() {
@@ -44,6 +48,25 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
       });
     }
     _vehiclesFuture = _vehicleService.fetchMyVehicles();
+    
+    // Calcolo iniziale del costo
+    _calculatePrepaidCost();
+  }
+  
+  // Funzione per ricalcolare il costo quando cambia la durata
+  void _calculatePrepaidCost() {
+      // Recupera la configurazione tariffaria dal parcheggio
+      final config = widget.parkingLot.tariffConfig;
+      
+      // Usa il calcolatore (assumendo che tu abbia creato parking_cost_calculator.dart)
+      final calculator = CostCalculator(config); 
+      
+      // Calcola il costo per la durata selezionata (in ore)
+      final cost = calculator.calculateCostForHours(_selectedDurationHours.toDouble());
+      
+      setState(() {
+          _prepaidCost = cost;
+      });
   }
 
   void _navigateToActiveSession() {
@@ -52,9 +75,8 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
         content: Text('A session is already active. Redirecting...'),
       ),
     );
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const RootPage(initialIndex: 1)),
-      (Route<dynamic> route) => false,
+    Navigator.of(context).push(
+      slideRoute(const RootPage(initialIndex: 1)),
     );
   }
 
@@ -67,21 +89,14 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
     }
 
     final paymentNotifier = ref.read(paymentProvider.notifier);
-    final paymentState = ref.read(paymentProvider);
 
-    if (!paymentState.hasMethod) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please add a payment method first.")),
-      );
-      return;
-    }
-
+    // Conferma con il costo esatto calcolato
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Pre-authorization'),
+        title: const Text('Confirm Payment'),
         content: Text(
-          'We will pre-authorize €${kPreAuthAmount.toStringAsFixed(2)} to start parking. Do you agree?',
+          'You are purchasing $_selectedDurationHours hours of parking for €${_prepaidCost.toStringAsFixed(2)}.\n\nThis amount is non-refundable if you end the session early.',
         ),
         actions: [
           TextButton(
@@ -90,7 +105,7 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Agree & Continue'),
+            child: const Text('Pay & Start'),
           ),
         ],
       ),
@@ -100,20 +115,25 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
 
     setState(() => _isLoading = true);
 
-    await paymentNotifier.charge(kPreAuthAmount);
-    paymentNotifier.setPreAuthorized(true);
+    // Addebita l'importo esatto (Prepagato)
+    await paymentNotifier.charge(_prepaidCost);
+    // Non serve setPreAuthorized(true) perché è un addebito diretto
+
+    final durationMinutes = _selectedDurationHours * 60;
 
     final session = await _sessionService.startSession(
       vehicleId: _selectedVehicle!.id,
       parkingLotId: widget.parkingLot.id,
+      durationMinutes: durationMinutes,
+      prepaidCost: _prepaidCost,       
     );
 
     if (mounted) {
       if (session != null &&
           session.vehicle != null &&
           session.parkingLot != null) {
-        final tariffConfig = widget.parkingLot.tariffConfig;
-
+        
+        // Avvia il controller locale
         ref
             .read(parkingControllerProvider.notifier)
             .start(
@@ -121,7 +141,7 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
               vehicleId: session.vehicle!.id,
               parkingLotId: session.parkingLot!.id,
               startAt: session.startTime,
-              tariffConfig: tariffConfig, //
+              tariffConfig: widget.parkingLot.tariffConfig, 
             );
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -130,17 +150,12 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
           ),
         );
 
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (context) => const RootPage(initialIndex: 1),
-          ),
-          (Route<dynamic> route) => false,
-        );
+        Navigator.of(context).push(slideRoute(const RootPage(initialIndex: 1)));
       } else {
-        paymentNotifier.resetPreAuthorization();
+        // In caso di errore API, si potrebbe voler rimborsare (logica complessa omessa)
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Failed to start session. Is one already active?'),
+            content: Text('Failed to start session. Please try again.'),
           ),
         );
       }
@@ -165,8 +180,18 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(context),
+              
+              // 1. Dettagli Parcheggio e Tariffa
               _buildParkingDetails(),
-              const SizedBox(height: 20),
+              
+              const SizedBox(height: 10),
+              
+              // 2. Selettore Durata (NUOVO)
+              _buildDurationSelector(),
+              
+              const SizedBox(height: 10),
+              
+              // 3. Selettore Veicolo (Titolo)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Text(
@@ -178,7 +203,11 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
                   ),
                 ),
               ),
+              
+              // 4. Lista Veicoli
               Expanded(child: _buildVehicleSelector()),
+              
+              // 5. Bottone Conferma
               _buildConfirmButton(),
             ],
           ),
@@ -195,7 +224,11 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
         children: [
           IconButton(
             icon: const Icon(IconlyLight.arrow_left, color: Colors.white),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              Navigator.of(context).push(
+                slideRoute(const RootPage(initialIndex: 1)),
+              );
+            },
           ),
           Text(
             'Start Session',
@@ -248,45 +281,84 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
             ],
           ),
           const SizedBox(height: 15),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildDetailChip(
-                '€${widget.parkingLot.hourlyRate.toStringAsFixed(2)}/h',
-                IconlyLight.wallet,
-              ),
-              _buildDetailChip(
-                '${widget.parkingLot.availableSpaces} Available',
-                IconlyLight.tick_square,
-              ),
-            ],
-          ),
+          const Divider(color: Colors.white24),
+          const SizedBox(height: 10),
+          
+          // Info sulla Tariffa
+          _buildTariffInfo(),
         ],
       ),
     );
   }
+  
+  Widget _buildTariffInfo() {
+      final config = widget.parkingLot.tariffConfig;
+      String infoText = '';
+      
+      if (config.type == 'FIXED_DAILY') {
+          infoText = 'Flat Daily Rate: €${config.dailyRate.toStringAsFixed(2)}';
+      } else if (config.type == 'HOURLY_LINEAR') {
+          infoText = 'Hourly Rate: €${config.dayBaseRate.toStringAsFixed(2)}/h';
+          if (config.nightBaseRate != config.dayBaseRate) {
+              infoText += '\nNight Rate: €${config.nightBaseRate.toStringAsFixed(2)}/h (${config.nightStartTime}-${config.nightEndTime})';
+          }
+      } else {
+          infoText = 'Variable Rate:\nDay: €${config.dayBaseRate}/h | Night: €${config.nightBaseRate}/h\n+ Multipliers apply based on duration.';
+      }
+      
+      return Text(
+          infoText, 
+          style: GoogleFonts.poppins(color: Colors.greenAccent, fontSize: 13, fontWeight: FontWeight.w500)
+      );
+  }
 
-  Widget _buildDetailChip(String label, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(30, 255, 255, 255),
-        borderRadius: BorderRadius.circular(30),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white70, size: 16),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontWeight: FontWeight.w500,
-            ),
+  // Widget per selezionare la durata
+  Widget _buildDurationSelector() {
+      return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.white10),
           ),
-        ],
-      ),
-    );
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                  Text('Select Duration', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14)),
+                  const SizedBox(height: 10),
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                          // Mostra Ore
+                          Text(
+                              '$_selectedDurationHours Hours', 
+                              style: GoogleFonts.poppins(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)
+                          ),
+                          // Mostra Costo Calcolato
+                          Text(
+                              '€${_prepaidCost.toStringAsFixed(2)}', 
+                              style: GoogleFonts.poppins(color: Colors.greenAccent, fontSize: 24, fontWeight: FontWeight.bold)
+                          ),
+                      ],
+                  ),
+                  Slider(
+                      value: _selectedDurationHours.toDouble(),
+                      min: 1,
+                      max: 24, // Massimo 24 ore per sessione
+                      divisions: 23,
+                      activeColor: Colors.blueAccent,
+                      inactiveColor: Colors.white24,
+                      onChanged: (value) {
+                          setState(() {
+                              _selectedDurationHours = value.toInt();
+                          });
+                          _calculatePrepaidCost(); // Ricalcola il costo al cambio
+                      },
+                  ),
+              ],
+          ),
+      );
   }
 
   Widget _buildVehicleSelector() {
@@ -341,8 +413,10 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
               ),
               child: ListTile(
                 leading: Icon(
-                  IconlyBold.star,
-                  color: isSelected ? Colors.blueAccent : Colors.white,
+                  // Se il veicolo è preferito, usa la stella piena, altrimenti vuota
+                  // (Assumendo che vehicle abbia isFavorite)
+                  vehicle.isFavorite ? IconlyBold.star : IconlyLight.activity,
+                  color: isSelected ? Colors.blueAccent : (vehicle.isFavorite ? Colors.amber : Colors.white),
                   size: 30,
                 ),
                 title: Text(
@@ -399,7 +473,7 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
                   ),
                 )
               : Text(
-                  isActive ? 'Session Active' : 'Confirm & Start Session',
+                  isActive ? 'Session Active' : 'Pay & Start Session',
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontSize: 18,

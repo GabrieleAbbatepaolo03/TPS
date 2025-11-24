@@ -72,6 +72,31 @@ class _MyVehiclesSectionState extends State<MyVehiclesSection> {
     }
   }
 
+  void _handleToggleFavorite(Vehicle vehicle) async {
+    final bool newFavoriteState = !vehicle.isFavorite;
+
+    try {
+
+      await _vehicleService.toggleFavorite(
+        vehicleId: vehicle.id,
+        isFavorite: newFavoriteState,
+      );
+
+      _loadVehicles();
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update favorite status.'), 
+            backgroundColor: Colors.red
+          ),
+        );
+      }
+    }
+  }
+
+
   Widget _buildAddVehicleButton() {
     return TextButton(
       onPressed: _showAddVehicleDialog,
@@ -129,9 +154,9 @@ class _MyVehiclesSectionState extends State<MyVehiclesSection> {
         const SizedBox(height: 15),
 
         Container(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Color.fromARGB(255, 2, 11, 60), 
+            color: const Color.fromARGB(255, 2, 11, 60), 
             borderRadius: BorderRadius.circular(20),
 
           ),
@@ -168,6 +193,7 @@ class _MyVehiclesSectionState extends State<MyVehiclesSection> {
                     child: VehicleCard(
                       vehicle: vehicle, 
                       onDelete: () => _handleDeleteVehicle(vehicle), 
+                      onFavoriteToggle: () {}, 
                     ),
                   );
                 },

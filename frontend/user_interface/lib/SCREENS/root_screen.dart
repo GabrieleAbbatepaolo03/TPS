@@ -37,13 +37,11 @@ class _RootPageState extends State<RootPage> {
     IconlyLight.profile,
   ];
 
-  // --- MODIFICA: Imposta _currentIndex in initState ---
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
   }
-  // --- FINE MODIFICA ---
 
   void _onItemSelected(int index) {
     setState(() {

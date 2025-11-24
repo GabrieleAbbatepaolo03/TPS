@@ -53,15 +53,21 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
   Future<void> _loadDashboardData() async {
     setState(() => isLoading = true);
     try {
-      parking = await ParkingService.getParking(widget.parkingId);
+      final fetchedParking = await ParkingService.getParking(widget.parkingId);
+      
+      // 🚨 CORREZIONE: Assegna il dato alla variabile di stato 'this.parking'
+      parking = fetchedParking;
+      
       spots = await ParkingService.getSpots(widget.parkingId);
 
-      _initializeTariffState(parking!.tariffConfig);
+      // Usa l'oggetto Parking assegnato per l'inizializzazione
+      _initializeTariffState(TariffConfig.fromJson(parking!.tariffConfigJson)); 
       _simulateCostProjection();
       _calculateProjectedRevenue();
 
       setState(() => isLoading = false);
     } catch (e) {
+      // Se c'è un errore, isLoading diventa false, ma parking rimane null
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -94,6 +100,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
       _nightEndTime = const TimeOfDay(hour: 6, minute: 0);
     }
 
+    // Assumendo che FlexRule.fromTariffConfig gestisca il parsing
     _flexRules =
         (config.flexRulesRaw as List<dynamic>?)
             ?.map((r) => FlexRule.fromTariffConfig(r as Map<String, dynamic>))
@@ -127,22 +134,20 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
 
     final config = _getCurrentTariffConfig();
 
-    double displayRate;
-    if (config.type == 'FIXED_DAILY') {
-      displayRate = config.dailyRate;
-    } else {
-      displayRate = config.dayBaseRate;
-    }
+    final String configJsonString = config.toJson();
 
+    final double displayRate = config.dayBaseRate; 
+
+    // Aggiorna il costruttore di Parking con i dati modificati
     final updatedParking = Parking(
       id: parking!.id,
       name: parking!.name,
       city: parking!.city,
       address: parking!.address,
       totalSpots: parking!.totalSpots,
-      occupiedSpots: parking!.occupiedSpots,
-      ratePerHour: displayRate,
-      tariffConfig: config,
+      occupiedSpots: parking!.occupiedSpots, 
+      ratePerHour: displayRate, 
+      tariffConfigJson: configJsonString, 
       latitude: parking!.latitude,
       longitude: parking!.longitude,
     );
@@ -170,15 +175,17 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
     try {
       final newSpot = await ParkingService.addSpot(parking!.id);
       final newSpotsList = List<Spot>.from(spots)..add(newSpot);
+      
+      // Aggiorna il costruttore di Parking
       final newParking = Parking(
         id: parking!.id,
         name: parking!.name,
         city: parking!.city,
         address: parking!.address,
         totalSpots: parking!.totalSpots + 1,
-        occupiedSpots: parking!.occupiedSpots,
+        occupiedSpots: parking!.occupiedSpots, 
         ratePerHour: parking!.ratePerHour,
-        tariffConfig: parking!.tariffConfig,
+        tariffConfigJson: parking!.tariffConfigJson,
         latitude: parking!.latitude,
         longitude: parking!.longitude,
       );
@@ -210,6 +217,8 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
           orElse: () => spots.last,
         );
         final newSpotsList = spots.where((s) => s.id != spotId).toList();
+
+        // Aggiorna il costruttore di Parking
         final newParking = Parking(
           id: parking!.id,
           name: parking!.name,
@@ -217,9 +226,9 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
           address: parking!.address,
           totalSpots: parking!.totalSpots - 1,
           occupiedSpots:
-              parking!.occupiedSpots - (spotToRemove.isOccupied ? 1 : 0),
+              parking!.occupiedSpots - (spotToRemove.isOccupied ? 1 : 0), 
           ratePerHour: parking!.ratePerHour,
-          tariffConfig: parking!.tariffConfig,
+          tariffConfigJson: parking!.tariffConfigJson,
           latitude: parking!.latitude,
           longitude: parking!.longitude,
         );
@@ -261,7 +270,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
     if (!mounted) return;
 
     final config = _getCurrentTariffConfig();
-    final calculator = CostCalculator(config);
+    final calculator = CostCalculator(config); 
     final List<FlSpot> newChartData = [];
 
     for (int hours = 0; hours <= 24; hours += 1) {
@@ -328,7 +337,8 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
     final double occupancyPercentage = totalSpots > 0
         ? (occupiedSpots / totalSpots) * 100
         : 0.0;
-    final config = _getCurrentTariffConfig();
+
+    final config = _getCurrentTariffConfig(); 
     final lastSpot = spots.isNotEmpty ? spots.last : null;
 
     return Scaffold(

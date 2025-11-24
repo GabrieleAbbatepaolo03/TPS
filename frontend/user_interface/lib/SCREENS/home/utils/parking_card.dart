@@ -1,20 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:user_interface/MODELS/parking_lot.dart'; // Assumi questo import
 
 class ParkingCard extends StatelessWidget {
-  final String name;
-  final String address;
-  final double distance; // in km
-  final int availableSpots;
-  final double hourlyRate; // tariffa oraria
+  // Invece di passare campi singoli, passiamo l'oggetto ParkingLot completo
+  final ParkingLot parkingLot; 
+  final double distance; 
 
   const ParkingCard({
     super.key,
-    required this.name,
-    required this.address,
+    required this.parkingLot,
     required this.distance,
-    required this.availableSpots,
-    required this.hourlyRate,
   });
+
+  String _getTariffDisplay() {
+    final config = parkingLot.tariffConfig;
+    switch (config.type) {
+      case 'FIXED_DAILY':
+        return '€${config.dailyRate.toStringAsFixed(2)} Daily';
+      case 'HOURLY_LINEAR':
+        return '€${config.dayBaseRate.toStringAsFixed(2)}/h';
+      case 'HOURLY_VARIABLE':
+        return 'Variable Rate'; 
+      default:
+        return 'N/A';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,43 +40,33 @@ class ParkingCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🏢 Nome parcheggio
           Text(
-            name,
+            parkingLot.name,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
-
           const SizedBox(height: 4),
-
           Text(
-            "$address · ${distance.toStringAsFixed(1)} km",
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
+            "${parkingLot.address} · ${distance.toStringAsFixed(1)} km",
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
+            overflow: TextOverflow.ellipsis,
           ),
-
           const Spacer(),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "$availableSpots spots • €${hourlyRate.toStringAsFixed(2)}/h",
+                "${parkingLot.availableSpaces} spots • ${_getTariffDisplay()}", 
                 style: const TextStyle(
                   fontSize: 14,
                   color: Colors.blueAccent,
                 ),
               ),
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.arrow_forward_ios,
-                    color: Colors.white70, size: 18),
-              ),
+              // ...
             ],
           ),
         ],

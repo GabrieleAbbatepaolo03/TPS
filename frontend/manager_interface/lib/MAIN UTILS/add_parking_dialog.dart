@@ -56,7 +56,7 @@ Future<Parking?> showAddParkingDialog(
               ratePerHour: double.parse(rateController.text),
               latitude: double.tryParse(latController.text),
               longitude: double.tryParse(lngController.text),
-              tariffConfig: Parking.defaultTariffConfig, 
+              tariffConfigJson: Parking.defaultTariffConfig.toJson(), 
             );
 
             try {
@@ -86,7 +86,7 @@ Future<Parking?> showAddParkingDialog(
                 ratePerHour: savedParking.ratePerHour,
                 latitude: savedParking.latitude,
                 longitude: savedParking.longitude,
-                tariffConfig: savedParking.tariffConfig,
+                tariffConfigJson: savedParking.tariffConfig.toJson(),
               );
 
               Navigator.of(context).pop(finalParking);

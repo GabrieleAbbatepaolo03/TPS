@@ -1,7 +1,6 @@
 from django.db import models
 from django.db.models.fields import DecimalField
 
-# Default JSON configuration: Fixed Hourly Rate of 2.50
 DEFAULT_TARIFF_JSON = """{
     "type": "HOURLY_LINEAR",
     "daily_rate": 20.00,
@@ -17,10 +16,8 @@ class Parking(models.Model):
     city = models.CharField(max_length=50)
     address = models.CharField(max_length=150)
     
-    # Campo per la tariffa oraria di base (mantenuto per compatibilità)
     rate_per_hour = models.DecimalField(max_digits=6, decimal_places=2, default=2.5) 
 
-    # NUOVO CAMPO: Salva la configurazione tariffaria complessa come JSON string
     tariff_config_json = models.TextField(default=DEFAULT_TARIFF_JSON) 
 
     latitude = models.FloatField(null=True, blank=True)
@@ -41,7 +38,6 @@ class Parking(models.Model):
     def available_spots(self):
         return self.total_spots - self.occupied_spots
 
-
 class ParkingEntrance(models.Model):
     parking = models.ForeignKey(
         Parking, 
@@ -55,13 +51,12 @@ class ParkingEntrance(models.Model):
     def __str__(self):
         return f"Entrance for {self.parking.name} ({self.address_line})"
 
-
 class Spot(models.Model):
     parking = models.ForeignKey(Parking, on_delete=models.CASCADE, related_name='spots')
-    number = models.CharField(max_length=10)
-    floor = models.CharField(max_length=10, blank=True, null=True)
+    number = models.CharField(max_length=20)
+    floor = models.CharField(max_length=10, blank=True, default='0') 
     zone = models.CharField(max_length=20, blank=True, null=True)
     is_occupied = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Spot {self.number} - {self.parking.name}"
+        return f"Spot {self.number} at {self.parking.name}"

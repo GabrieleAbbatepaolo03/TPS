@@ -1,5 +1,3 @@
-// [FULL REPLACEMENT] parking_lot.dart
-
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'tariff_config.dart';
 
@@ -8,22 +6,30 @@ class ParkingLot {
   final String name;
   final String city;
   final String address;
-  final double hourlyRate;
   final LatLng centerPosition;
   final int totalSpots;
   final int availableSpaces;
-  final TariffConfig tariffConfig;
+  
+  // Campo che riceve la stringa JSON grezza dal backend
+  final String tariffConfigJson; 
+
+  // Getter che converte la stringa in oggetto TariffConfig quando serve
+  TariffConfig get tariffConfig {
+      if (tariffConfigJson.isEmpty) {
+          return ParkingLot.defaultTariffConfig;
+      }
+      return TariffConfig.fromJson(tariffConfigJson);
+  }
 
   ParkingLot({
     required this.id,
     required this.name,
     required this.city,
     required this.address,
-    required this.hourlyRate,
     required this.centerPosition,
     required this.totalSpots,
     required this.availableSpaces,
-    required this.tariffConfig,
+    required this.tariffConfigJson,
   });
 
   static TariffConfig get defaultTariffConfig {
@@ -38,12 +44,18 @@ class ParkingLot {
     );
   }
 
-  static double _parseRate(dynamic value) {
-    if (value == null) return 0.0;
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    return int.tryParse(value.toString()) ?? 0;
+  }
+
+  static double? _parseNullableDouble(dynamic value) {
+    if (value == null) return null;
     if (value is num) return value.toDouble();
     final s = value.toString();
     final normalized = s.replaceAll(',', '.');
-    return double.tryParse(normalized) ?? 0.0;
+    return double.tryParse(normalized);
   }
 
   factory ParkingLot.fromJson(Map<String, dynamic> json) {
@@ -57,30 +69,21 @@ class ParkingLot {
         (json['center_longitude'] as num?)?.toDouble() ??
         12.4964;
 
-    final dynamic rawTariffJson = json['tariff_config_json'];
-    final TariffConfig config =
-        (rawTariffJson is String && rawTariffJson.isNotEmpty)
-        ? TariffConfig.fromJson(rawTariffJson)
-        : ParkingLot.defaultTariffConfig;
-
+    final String rawTariffJson = json['tariff_config_json'] ?? '';
+    
     return ParkingLot(
-      id: json['id'] as int,
+      id: _parseInt(json['id']), // Usa _parseInt per sicurezza
       name: json['name'] ?? '',
       city: json['city'] ?? '',
       address: json['address'] ?? '',
 
-      hourlyRate: _parseRate(json['rate'] ?? json['rate_per_hour']),
-
       centerPosition: LatLng(lat, lng),
 
-      totalSpots: (json['total_spots'] is int)
-          ? json['total_spots'] as int
-          : (int.tryParse('${json['total_spots']}') ?? 0),
-      availableSpaces: (json['available_spots'] is int)
-          ? json['available_spots'] as int
-          : (int.tryParse('${json['available_spots']}') ?? 0),
+      // 🚨 QUI LA CORREZIONE CHIAVE: Parsing sicuro
+      totalSpots: _parseInt(json['total_spots']),
+      availableSpaces: _parseInt(json['available_spots']),
 
-      tariffConfig: config,
+      tariffConfigJson: rawTariffJson,
     );
   }
 

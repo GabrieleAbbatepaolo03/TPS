@@ -7,6 +7,7 @@ from rest_framework.routers import DefaultRouter
 
 from parkings.views import ParkingViewSet, SpotViewSet
 from vehicles.views import VehicleViewSet, ParkingSessionViewSet
+from payments.views import PaymentCardViewSet # Devi assicurarti che questo sia corretto!
 
 admin.site.site_header = 'TPS Management System'
 admin.site.site_title = 'TPS Admin Portal'
@@ -23,6 +24,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),
     path('api/', include(router.urls)),
+    
+    path('api/payments/', include('payments.urls')), 
 ]
 
 if settings.DEBUG:

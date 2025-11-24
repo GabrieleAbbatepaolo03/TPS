@@ -37,7 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // --- Map Data ---
   GoogleMapController? _mapController;
   Set<Marker> _markers = {};
-  CameraPosition _initialCameraPosition = const CameraPosition(
+  final CameraPosition _initialCameraPosition = const CameraPosition(
     target: LatLng(41.8719, 12.5674), // Default Italy
     zoom: 5.5,
   );
@@ -58,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final ui.Codec codec = await ui.instantiateImageCodec(
       byteData.buffer.asUint8List(),
-      targetWidth: 100,
+      targetWidth: 70,
     );
     final ui.FrameInfo fi = await codec.getNextFrame();
     final ui.Image image = fi.image;

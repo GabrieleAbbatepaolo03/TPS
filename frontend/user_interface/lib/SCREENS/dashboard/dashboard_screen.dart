@@ -2,42 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconly/iconly.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:user_interface/MAIN UTILS/page_title.dart';
-import 'package:user_interface/MAIN UTILS/page_transition.dart';
-import 'package:user_interface/SCREENS/payment/payment_screen.dart';
-import 'package:user_interface/SCREENS/payment/add_card_sheet.dart';
-import 'package:user_interface/STATE/payment_state.dart';
+import 'package:user_interface/MAIN%20UTILS/page_title.dart';
+import 'package:user_interface/MAIN%20UTILS/page_transition.dart'; 
 import '../../MAIN UTILS/app_theme.dart';
-import 'package:user_interface/SCREENS/profile/my_vehicles_screen.dart';
+
+import 'package:user_interface/SCREENS/dashboard/dashboard_pages/parking_history_page.dart'; 
+import 'package:user_interface/SCREENS/dashboard/dashboard_pages/payments_history_page.dart';
+import 'package:user_interface/SCREENS/dashboard/dashboard_pages/payments_method_page/payment_methods_page.dart';
+import 'package:user_interface/SCREENS/dashboard/dashboard_pages/settings_page.dart'; 
+import 'package:user_interface/SCREENS/dashboard/dashboard_pages/support_page.dart';
+import 'package:user_interface/SCREENS/dashboard/dashboard_pages/my_vehicles_page.dart';
+
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
-  void _navigateToPaymentSettings(BuildContext context) {
-    Navigator.of(context).push(slideRoute(const PaymentScreen()));
-  }
-
-  void _navigateToMyVehicles(BuildContext context) {
-    Navigator.of(context).push(slideRoute(const MyVehiclesScreen()));
-  }
-
-  Future<void> _showAddCardModal(BuildContext context, WidgetRef ref) async {
-    final result = await showModalBottomSheet<String?>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (ctx) => const AddCardSheet(),
-    );
-
-    if (!context.mounted) return;
-
-    if (result != null && result.isNotEmpty) {
-      ref.read(paymentProvider.notifier).setPaymentMethod(result);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Payment method saved!')));
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -53,9 +32,11 @@ class DashboardScreen extends ConsumerWidget {
               children: [
                 const PageTitle(title: 'Dashboard'),
                 const SizedBox(height: 30),
+
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+
                     Expanded(
                       flex: 2,
                       child: AspectRatio(
@@ -73,7 +54,11 @@ class DashboardScreen extends ConsumerWidget {
                                   context,
                                   icon: IconlyBold.time_circle,
                                   label: 'Parking History',
-                                  onTap: () {},
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      slideRoute(const ParkingHistoryPage()),
+                                    );
+                                  },
                                 ),
                               ),
                             ),
@@ -81,12 +66,14 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    
                     Expanded(
                       flex: 1,
                       child: AspectRatio(
                         aspectRatio: 0.33,
                         child: Column(
                           children: [
+                            
                             Expanded(
                               flex: 1,
                               child: AspectRatio(
@@ -100,12 +87,16 @@ class DashboardScreen extends ConsumerWidget {
                                     context,
                                     icon: IconlyBold.wallet,
                                     label: 'Payments',
-                                    onTap: () =>
-                                        _navigateToPaymentSettings(context),
+                                    onTap: () {
+                                      Navigator.of(context).push(
+                                        slideRoute(const PaymentsHistoryPage()),
+                                      );
+                                    },
                                   ),
                                 ),
                               ),
                             ),
+                            
                             Expanded(
                               flex: 2,
                               child: AspectRatio(
@@ -120,8 +111,11 @@ class DashboardScreen extends ConsumerWidget {
                                     context,
                                     icon: IconlyBold.plus,
                                     label: 'Add Payment method',
-                                    onTap: () =>
-                                        _showAddCardModal(context, ref),
+                                    onTap: () {
+                                      Navigator.of(context).push(
+                                        slideRoute(const PaymentMethodsPage()),
+                                      );
+                                    },
                                   ),
                                 ),
                               ),
@@ -132,15 +126,19 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
+                
+                
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    
                     Expanded(
                       flex: 1,
                       child: AspectRatio(
                         aspectRatio: 0.5,
                         child: Column(
                           children: [
+                            
                             Expanded(
                               flex: 1,
                               child: Padding(
@@ -155,11 +153,16 @@ class DashboardScreen extends ConsumerWidget {
                                     context,
                                     icon: IconlyBold.setting,
                                     label: 'Settings',
-                                    onTap: () {},
+                                    onTap: () {
+                                      Navigator.of(context).push(
+                                        slideRoute(const SettingsPage()),
+                                      );
+                                    },
                                   ),
                                 ),
                               ),
                             ),
+                            
                             Expanded(
                               flex: 1,
                               child: Padding(
@@ -173,7 +176,11 @@ class DashboardScreen extends ConsumerWidget {
                                     context,
                                     icon: IconlyBold.info_circle,
                                     label: 'Support',
-                                    onTap: () {},
+                                    onTap: () {
+                                      Navigator.of(context).push(
+                                        slideRoute(const SupportPage()),
+                                      );
+                                    },
                                   ),
                                 ),
                               ),
@@ -182,6 +189,7 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    
                     Expanded(
                       flex: 2,
                       child: AspectRatio(
@@ -192,7 +200,11 @@ class DashboardScreen extends ConsumerWidget {
                             context,
                             icon: IconlyBold.activity,
                             label: 'My Vehicles',
-                            onTap: () => _navigateToMyVehicles(context),
+                            onTap: () {
+                              Navigator.of(context).push(
+                                slideRoute(const MyVehiclesPage()),
+                              );
+                            },
                           ),
                         ),
                       ),

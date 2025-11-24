@@ -4,27 +4,18 @@ from parkings.models import Parking
 from parkings.serializers import ParkingSerializer 
 
 class ControllerVehicleSerializer(serializers.ModelSerializer):
-    """
-    Minimal serializer for the Controller App: shows only the plate.
-    """
     class Meta:
         model = Vehicle
-        fields = ['id', 'plate'] # Name is excluded for privacy
+        fields = ['id', 'plate']
         read_only_fields = ['id', 'plate']
 
 class VehicleSerializer(serializers.ModelSerializer):
-    """
-    Full serializer for the User/Manager App.
-    """
     class Meta:
         model = Vehicle
-        fields = ['id', 'plate', 'name'] 
+        fields = ['id', 'plate', 'name', 'is_favorite']
         read_only_fields = ['id']
 
 class ParkingSessionSerializer(serializers.ModelSerializer):
-    """
-    Base session serializer. Uses the full VehicleSerializer by default.
-    """
     vehicle = VehicleSerializer(read_only=True)
     parking_lot = ParkingSerializer(read_only=True)
     
@@ -38,24 +29,46 @@ class ParkingSessionSerializer(serializers.ModelSerializer):
         source='parking_lot',
         write_only=True
     )
+    
+    # Campi di input per la logica prerischio
+    duration_purchased_minutes = serializers.IntegerField(write_only=True)
+    prepaid_cost = serializers.DecimalField(max_digits=10, decimal_places=2, write_only=True)
+
     class Meta:
         model = ParkingSession
         fields = [
             'id', 'vehicle', 'vehicle_id', 'parking_lot', 'parking_lot_id',
-            'start_time', 'end_time', 'is_active', 'total_cost'
+            'start_time', 'end_time', 'is_active', 'total_cost',
+            'planned_end_time', 'is_expired', 'expired_at', 
+            'duration_purchased_minutes', 'prepaid_cost'
         ]
         read_only_fields = [
-            'id', 'vehicle', 'parking_lot', 'start_time', 
-            'end_time', 'is_active', 'total_cost'
+            'id', 'vehicle', 'parking_lot', 'start_time', 'end_time', 
+            'is_active', 'total_cost', 'planned_end_time', 'is_expired', 'expired_at', 
+            'duration_purchased_minutes', 'prepaid_cost'
         ]
 
 class ControllerParkingSessionSerializer(ParkingSessionSerializer):
     """
-    Specialized serializer for the Controller App.
-    Uses the minimal ControllerVehicleSerializer.
+    Serializzatore specializzato per il Controllore. 
     """
     vehicle = ControllerVehicleSerializer(read_only=True)
-
-    class Meta(ParkingSessionSerializer.Meta):
-        # Inherit fields, but the 'vehicle' field uses the overridden ControllerVehicleSerializer
-        pass
+    parking_lot = ParkingSerializer(read_only=True)
+    
+    class Meta:
+        model = ParkingSession
+        fields = [
+            'id', 'vehicle', 'parking_lot', 'start_time', 
+            'is_active', 
+            'planned_end_time',
+            'is_expired',
+            'expired_at',
+            'duration_purchased_minutes',
+            'prepaid_cost',
+        ]
+        # CORREZIONE: Definizione esplicita dei campi read_only
+        read_only_fields = [
+            'id', 'vehicle', 'parking_lot', 'start_time', 
+            'is_active', 'planned_end_time', 'is_expired', 
+            'expired_at', 'duration_purchased_minutes', 'prepaid_cost'
+        ]

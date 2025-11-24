@@ -32,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
 
   GoogleMapController? _mapController;
-  LatLng _currentPosition = const LatLng(41.9028, 12.4964);
+  LatLng _currentPosition = const LatLng(0.0, 0.0);
   final Set<Marker> _markers = {};
 
   BitmapDescriptor? _userLocationIcon;
@@ -70,52 +70,82 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadCustomUserIcon() async {
-    final ByteData byteData = await rootBundle.load(
-      'assets/images/car_location_marker.png',
-    );
-    final ui.Codec codec = await ui.instantiateImageCodec(
-      byteData.buffer.asUint8List(),
-      targetWidth: 100,
-    );
-    final ui.FrameInfo fi = await codec.getNextFrame();
-    final ui.Image image = fi.image;
-    final ByteData? resizedByteData = await image.toByteData(
-      format: ui.ImageByteFormat.png,
-    );
+  final ByteData byteData = await rootBundle.load(
+    'assets/images/car_location_marker.png',
+  );
 
-    if (!mounted || resizedByteData == null) return;
+  final ui.Codec codec = await ui.instantiateImageCodec(
+    byteData.buffer.asUint8List(),
+    targetWidth: 200,
+  );
+  final ui.FrameInfo fi = await codec.getNextFrame();
+  final ui.Image largeImage = fi.image;
 
-    setState(() {
-      _userLocationIcon = BitmapDescriptor.fromBytes(
-        resizedByteData.buffer.asUint8List(),
-      );
-    });
+  const int targetSize = 70; 
 
-    _filterAndDisplayParkings();
-  }
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  final paint = Paint()..filterQuality = FilterQuality.high;
+
+  canvas.drawImageRect(
+    largeImage,
+    Rect.fromLTWH(0, 0, largeImage.width.toDouble(), largeImage.height.toDouble()),
+    Rect.fromLTWH(0, 0, targetSize.toDouble(), targetSize.toDouble()),
+    paint,
+  );
+
+  final ui.Image smallImage = await recorder.endRecording().toImage(targetSize, targetSize);
+  final ByteData? resizedByteData =
+      await smallImage.toByteData(format: ui.ImageByteFormat.png);
+
+  if (!mounted || resizedByteData == null) return;
+
+  setState(() {
+    _userLocationIcon = BitmapDescriptor.fromBytes(
+      resizedByteData.buffer.asUint8List(),
+    );
+  });
+
+  _filterAndDisplayParkings();
+}
 
   Future<void> _loadCustomParkingIcon() async {
-    final ByteData byteData = await rootBundle.load(
-      'assets/images/parking_marker.png',
-    );
-    final ui.Codec codec = await ui.instantiateImageCodec(
-      byteData.buffer.asUint8List(),
-      targetWidth: 100,
-    );
-    final ui.FrameInfo fi = await codec.getNextFrame();
-    final ui.Image image = fi.image;
-    final ByteData? resizedByteData = await image.toByteData(
-      format: ui.ImageByteFormat.png,
-    );
+  final ByteData byteData = await rootBundle.load(
+    'assets/images/parking_marker.png',
+  );
 
-    if (!mounted || resizedByteData == null) return;
+  final ui.Codec codec = await ui.instantiateImageCodec(
+    byteData.buffer.asUint8List(),
+    targetWidth: 200,
+  );
+  final ui.FrameInfo fi = await codec.getNextFrame();
+  final ui.Image largeImage = fi.image;
 
-    setState(() {
-      _parkingMarkerIcon = BitmapDescriptor.fromBytes(
-        resizedByteData.buffer.asUint8List(),
-      );
-    });
-  }
+  const int targetSize = 70;
+
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  final paint = Paint()..filterQuality = FilterQuality.high;
+
+  canvas.drawImageRect(
+    largeImage,
+    Rect.fromLTWH(0, 0, largeImage.width.toDouble(), largeImage.height.toDouble()),
+    Rect.fromLTWH(0, 0, targetSize.toDouble(), targetSize.toDouble()),
+    paint,
+  );
+
+  final ui.Image smallImage = await recorder.endRecording().toImage(targetSize, targetSize);
+  final ByteData? resizedByteData =
+      await smallImage.toByteData(format: ui.ImageByteFormat.png);
+
+  if (!mounted || resizedByteData == null) return;
+
+  setState(() {
+    _parkingMarkerIcon = BitmapDescriptor.fromBytes(
+      resizedByteData.buffer.asUint8List(),
+    );
+  });
+}
 
   Future<void> _loadAllUserData() async {
     final userDataFuture = _userService.fetchUserProfile();
@@ -168,14 +198,12 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       accessGranted = false;
     }
-
     if (!mounted) return;
 
     setState(() {
       _locationAccessGranted = accessGranted;
       _isLocationLoading = false;
     });
-
     _filterAndDisplayParkings();
   }
 
@@ -232,11 +260,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void _filterAndDisplayParkings() {
     if (!mounted) return;
     final Set<Marker> newMarkers = {};
-
-    print(
-      'Current GPS Position: ${_currentPosition.latitude}, ${_currentPosition.longitude}',
-    );
-
     if (_locationAccessGranted) {
       newMarkers.add(
         Marker(
@@ -248,42 +271,38 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    final List<ParkingLot> tempNearbyList = [];
-    final double distanceLimitInMeters = _distanceLimitKm * 1000;
-
-    for (var lot in _parkingLots) {
+     _nearbyParkingLots = _parkingLots.where((lot) {
       final distanceInMeters = Geolocator.distanceBetween(
         _currentPosition.latitude,
         _currentPosition.longitude,
         lot.centerPosition.latitude,
         lot.centerPosition.longitude,
       );
-
-      print(
-        'Lot ${lot.name} (${lot.id}) distance: ${distanceInMeters.toStringAsFixed(2)} meters',
-      );
-
-      if (distanceInMeters <= distanceLimitInMeters) {
-        tempNearbyList.add(lot);
-      }
-    }
-
-    _nearbyParkingLots = tempNearbyList;
+      return distanceInMeters <= (_distanceLimitKm * 1000);
+    }).toList();
 
     _applySearchFilter(_nearbyParkingLots);
 
-    print(
-      'Parkings displayed after all filters: ${_filteredParkingLots.length}',
-    );
-
     for (var lot in _filteredParkingLots) {
+
+      String snippetText = 'Tap to start sessione...';
+      final config = lot.tariffConfig;
+      
+      if (config.type == 'FIXED_DAILY') {
+          snippetText = 'Flat Rate: €${config.dailyRate.toStringAsFixed(2)}';
+      } else if (config.type == 'HOURLY_LINEAR') {
+          snippetText = 'Rate: €${config.dayBaseRate.toStringAsFixed(2)}/h';
+      } else {
+          snippetText = 'Variable Rate (Tap for details)';
+      }
+
       newMarkers.add(
         Marker(
           markerId: MarkerId(lot.id.toString()),
           position: lot.centerPosition,
           infoWindow: InfoWindow(
             title: lot.name,
-            snippet: 'Tap to start session...',
+            snippet: snippetText,
             onTap: () {
               _navigateToStartSession(lot);
             },

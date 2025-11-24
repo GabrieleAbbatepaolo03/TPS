@@ -60,14 +60,14 @@ class TariffConfig {
   }
 
   String toJson() {
-    return jsonEncode({
-      'type': type,
-      'daily_rate': dailyRate,
-      'day_base_rate': dayBaseRate,
-      'night_base_rate': nightBaseRate,
-      'night_start_time': nightStartTime,
-      'night_end_time': nightEndTime,
-      'flex_rules': flexRulesRaw,
-    });
+      return jsonEncode({
+          'type': type,
+          'daily_rate': dailyRate,
+          'day_base_rate': dayBaseRate,
+          'night_base_rate': nightBaseRate,
+          'night_start_time': nightStartTime,
+          'night_end_time': nightEndTime,
+          'flex_rules': flexRulesRaw,
+      });
   }
 }
