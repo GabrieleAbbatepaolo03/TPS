@@ -38,7 +38,6 @@ def get_tokens_for_user(user):
     }
 
 class RegisterUserView(APIView):
-    # ... (Il resto della vista register rimane invariato)
     permission_classes = () 
     authentication_classes = ()
 

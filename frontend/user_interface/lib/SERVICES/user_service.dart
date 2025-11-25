@@ -3,7 +3,8 @@ import 'package:user_interface/services/AUTHETNTICATION%20HELPERS/authenticated_
 import 'package:user_interface/services/AUTHETNTICATION%20HELPERS/secure_storage_service.dart';
 
 
-const String _baseUrl = 'http://127.0.0.1:8000/api/users'; 
+// const String _baseUrl = 'http://127.0.0.1:8000/api/users'; 
+const String _baseUrl = 'http://10.0.2.2:8000/api/users'; 
 
 class UserService {
   final AuthenticatedHttpClient _httpClient;

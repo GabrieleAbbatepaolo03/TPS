@@ -30,9 +30,8 @@ class ParkingSessionSerializer(serializers.ModelSerializer):
         write_only=True
     )
     
-    # Campi di input per la logica prerischio
-    duration_purchased_minutes = serializers.IntegerField(write_only=True)
-    prepaid_cost = serializers.DecimalField(max_digits=10, decimal_places=2, write_only=True)
+    # 🚨 CORREZIONE: RIMOSSE le definizioni esplicite con write_only=True.
+    # Ora DRF userà la definizione del modello (che permette lettura e scrittura).
 
     class Meta:
         model = ParkingSession
@@ -42,10 +41,11 @@ class ParkingSessionSerializer(serializers.ModelSerializer):
             'planned_end_time', 'is_expired', 'expired_at', 
             'duration_purchased_minutes', 'prepaid_cost'
         ]
+        # Rimuoviamo duration e prepaid_cost da read_only_fields per permettere l'invio
         read_only_fields = [
             'id', 'vehicle', 'parking_lot', 'start_time', 'end_time', 
             'is_active', 'total_cost', 'planned_end_time', 'is_expired', 'expired_at', 
-            'duration_purchased_minutes', 'prepaid_cost'
+            # 'duration_purchased_minutes', 'prepaid_cost' <--- RIMOSSI DA QUI
         ]
 
 class ControllerParkingSessionSerializer(ParkingSessionSerializer):
@@ -66,7 +66,6 @@ class ControllerParkingSessionSerializer(ParkingSessionSerializer):
             'duration_purchased_minutes',
             'prepaid_cost',
         ]
-        # CORREZIONE: Definizione esplicita dei campi read_only
         read_only_fields = [
             'id', 'vehicle', 'parking_lot', 'start_time', 
             'is_active', 'planned_end_time', 'is_expired', 

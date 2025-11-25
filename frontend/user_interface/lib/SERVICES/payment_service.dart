@@ -3,7 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:user_interface/MODELS/payment_card.dart';
 import 'package:user_interface/SERVICES/AUTHETNTICATION%20HELPERS/authenticated_http_client.dart'; 
 
-const String _baseUrl = 'http://127.0.0.1:8000/api/payments/cards/'; 
+//const String _baseUrl = 'http://127.0.0.1:8000/api/payments/cards/'; 
+const String _baseUrl = 'http://10.0.2.2:8000/api/payments/cards/'; 
 
 class PaymentService {
   final AuthenticatedHttpClient _httpClient = AuthenticatedHttpClient();

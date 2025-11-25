@@ -1,7 +1,8 @@
-import 'dart:async';
+import 'dart:async'; // Necessario per il Timer
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:manager_interface/models/parking.dart';
 import 'package:manager_interface/SCREENS/live%20monitor%20screen/live_monitor_screen.dart';
 
 // Import Models & Services
@@ -11,7 +12,7 @@ import 'package:manager_interface/SCREENS/parking%20detail/utils/live_stats/live
 import 'package:manager_interface/SCREENS/parking%20detail/utils/parking_cost_calculator.dart';
 import 'package:manager_interface/SCREENS/parking%20detail/utils/tariff_management/spot_stat_widgets.dart';
 import 'package:manager_interface/SCREENS/parking%20detail/utils/tariff_management/tariff_selection_card.dart';
-import 'package:manager_interface/models/parking.dart';
+
 import 'package:manager_interface/models/spot.dart';
 import 'package:manager_interface/models/tariff_config.dart';
 import 'package:manager_interface/services/parking_service.dart';
@@ -29,6 +30,9 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
   Parking? parking;
   List<Spot> spots = [];
   bool isLoading = true;
+  
+  // 🚨 TIMER PER AGGIORNAMENTO LIVE
+  Timer? _liveUpdateTimer;
 
   String _selectedRateType = 'HOURLY_LINEAR';
   final _dailyRateController = TextEditingController();
@@ -48,33 +52,70 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
   void initState() {
     super.initState();
     _loadDashboardData();
+    
+    // 🚨 AVVIA IL TIMER: Aggiorna ogni 5 secondi
+    _liveUpdateTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      _silentlyUpdateData();
+    });
   }
 
+  @override
+  void dispose() {
+    // 🚨 IMPORTANTE: Ferma il timer quando esci dalla pagina
+    _liveUpdateTimer?.cancel();
+    _dailyRateController.dispose();
+    _dayRateController.dispose();
+    _nightRateController.dispose();
+    super.dispose();
+  }
+
+  // Caricamento Iniziale (Mostra Spinner)
   Future<void> _loadDashboardData() async {
     setState(() => isLoading = true);
     try {
       final fetchedParking = await ParkingService.getParking(widget.parkingId);
       
-      // 🚨 CORREZIONE: Assegna il dato alla variabile di stato 'this.parking'
+      // 🚨 FIX CRUCIALE: Assegnazione alla variabile di stato
       parking = fetchedParking;
       
       spots = await ParkingService.getSpots(widget.parkingId);
 
-      // Usa l'oggetto Parking assegnato per l'inizializzazione
-      _initializeTariffState(TariffConfig.fromJson(parking!.tariffConfigJson)); 
+      // Usa il getter tariffConfig per inizializzare
+      _initializeTariffState(parking!.tariffConfig); 
+      
       _simulateCostProjection();
       _calculateProjectedRevenue();
 
       setState(() => isLoading = false);
     } catch (e) {
-      // Se c'è un errore, isLoading diventa false, ma parking rimane null
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to load dashboard: $e'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load dashboard: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+  
+  // 🚨 AGGIORNAMENTO SILENZIOSO (Niente Spinner, Solo Aggiornamento Dati)
+  Future<void> _silentlyUpdateData() async {
+    if (!mounted) return;
+    try {
+        // Scarica i dati aggiornati (inclusi occupiedSpots, todayRevenue, todayEntries)
+        final updatedParking = await ParkingService.getParking(widget.parkingId);
+
+        if (mounted) {
+            setState(() {
+                parking = updatedParking;
+                // Aggiorna le statistiche visuali con i nuovi dati
+                _calculateProjectedRevenue();
+            });
+        }
+    } catch (e) {
+        print("Live update error: $e"); 
     }
   }
 
@@ -100,7 +141,6 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
       _nightEndTime = const TimeOfDay(hour: 6, minute: 0);
     }
 
-    // Assumendo che FlexRule.fromTariffConfig gestisca il parsing
     _flexRules =
         (config.flexRulesRaw as List<dynamic>?)
             ?.map((r) => FlexRule.fromTariffConfig(r as Map<String, dynamic>))
@@ -125,7 +165,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
   void _onTariffDataChanged() {
     setState(() {
       _simulateCostProjection();
-      _calculateProjectedRevenue();
+      // Nota: Non ricalcoliamo le revenue qui perché quelle dipendono dai dati reali del DB
     });
   }
 
@@ -133,12 +173,9 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
     if (parking == null) return;
 
     final config = _getCurrentTariffConfig();
-
     final String configJsonString = config.toJson();
 
-    final double displayRate = config.dayBaseRate; 
-
-    // Aggiorna il costruttore di Parking con i dati modificati
+    // Ricostruisci l'oggetto Parking preservando i dati attuali
     final updatedParking = Parking(
       id: parking!.id,
       name: parking!.name,
@@ -146,7 +183,8 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
       address: parking!.address,
       totalSpots: parking!.totalSpots,
       occupiedSpots: parking!.occupiedSpots, 
-      ratePerHour: displayRate, 
+      todayEntries: parking!.todayEntries, // Mantiene i dati statistici
+      todayRevenue: parking!.todayRevenue, // Mantiene i dati statistici
       tariffConfigJson: configJsonString, 
       latitude: parking!.latitude,
       longitude: parking!.longitude,
@@ -154,7 +192,13 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
 
     try {
       await ParkingService.saveParking(updatedParking);
-      parking = updatedParking;
+      
+      setState(() {
+          parking = updatedParking;
+      });
+      
+      _simulateCostProjection();
+      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Tariff and Rules updated successfully'),
@@ -176,15 +220,15 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
       final newSpot = await ParkingService.addSpot(parking!.id);
       final newSpotsList = List<Spot>.from(spots)..add(newSpot);
       
-      // Aggiorna il costruttore di Parking
       final newParking = Parking(
         id: parking!.id,
         name: parking!.name,
         city: parking!.city,
         address: parking!.address,
-        totalSpots: parking!.totalSpots + 1,
+        totalSpots: parking!.totalSpots + 1, 
         occupiedSpots: parking!.occupiedSpots, 
-        ratePerHour: parking!.ratePerHour,
+        todayEntries: parking!.todayEntries,
+        todayRevenue: parking!.todayRevenue,
         tariffConfigJson: parking!.tariffConfigJson,
         latitude: parking!.latitude,
         longitude: parking!.longitude,
@@ -193,17 +237,11 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
       setState(() {
         spots = newSpotsList;
         parking = newParking;
-        _calculateProjectedRevenue();
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Spot added.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Spot added.')));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to add spot: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Failed to add spot: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -212,22 +250,18 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
     try {
       final success = await ParkingService.deleteSpot(spotId);
       if (success) {
-        final spotToRemove = spots.firstWhere(
-          (s) => s.id == spotId,
-          orElse: () => spots.last,
-        );
+        final spotToRemove = spots.firstWhere((s) => s.id == spotId, orElse: () => spots.last);
         final newSpotsList = spots.where((s) => s.id != spotId).toList();
 
-        // Aggiorna il costruttore di Parking
         final newParking = Parking(
           id: parking!.id,
           name: parking!.name,
           city: parking!.city,
           address: parking!.address,
           totalSpots: parking!.totalSpots - 1,
-          occupiedSpots:
-              parking!.occupiedSpots - (spotToRemove.isOccupied ? 1 : 0), 
-          ratePerHour: parking!.ratePerHour,
+          occupiedSpots: parking!.occupiedSpots - (spotToRemove.isOccupied ? 1 : 0), 
+          todayEntries: parking!.todayEntries,
+          todayRevenue: parking!.todayRevenue,
           tariffConfigJson: parking!.tariffConfigJson,
           latitude: parking!.latitude,
           longitude: parking!.longitude,
@@ -236,18 +270,12 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
         setState(() {
           spots = newSpotsList;
           parking = newParking;
-          _calculateProjectedRevenue();
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Spot deleted.')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Spot deleted.')));
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to delete spot: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Failed to delete spot: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -285,23 +313,12 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
 
   void _calculateProjectedRevenue() {
     if (parking == null) return;
-    final totalSpots = parking!.totalSpots;
-    final occupiedSpots = parking!.occupiedSpots;
-
-    if (totalSpots == 0) {
-      projectedRevenue = 0.0;
-      dailyEntries = 0.0;
-      return;
-    }
-
-    final TariffConfig currentConfig = _getCurrentTariffConfig();
-    final calculator = CostCalculator(currentConfig);
-
-    final costPer24h = calculator.calculateCostForHours(24);
-
-    projectedRevenue = costPer24h * occupiedSpots;
-
-    dailyEntries = (occupiedSpots * (24 / avgStayHours));
+    
+    // 🚨 USA I DATI REALI DAL BACKEND (Aggiornati dal Timer)
+    setState(() {
+        projectedRevenue = parking!.todayRevenue;
+        dailyEntries = parking!.todayEntries.toDouble();
+    });
   }
 
   Widget _buildCard({required String title, required Widget child}) {
@@ -327,6 +344,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
   Widget build(BuildContext context) {
     if (isLoading || parking == null) {
       return const Scaffold(
+        backgroundColor: Color(0xFF020B3C), // Sfondo scuro per evitare flash bianco
         body: Center(child: CircularProgressIndicator(color: Colors.white)),
       );
     }
@@ -337,9 +355,8 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
     final double occupancyPercentage = totalSpots > 0
         ? (occupiedSpots / totalSpots) * 100
         : 0.0;
-
-    final config = _getCurrentTariffConfig(); 
-    final lastSpot = spots.isNotEmpty ? spots.last : null;
+    
+    final config = _getCurrentTariffConfig();
 
     return Scaffold(
       backgroundColor: const Color(0xFF020B3C),
@@ -388,7 +405,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // COLUMN 1: Tariff Management (25% width)
+            // COLUMN 1: Tariff Management
             Expanded(
               flex: 1,
               child: SingleChildScrollView(
@@ -436,8 +453,8 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                         availableSpots: availableSpots,
                         onAddSpot: _addSpot,
                         onRemoveLastSpot: () {
-                          if (lastSpot != null) {
-                            _deleteSpot(lastSpot.id);
+                          if (spots.isNotEmpty) {
+                            _deleteSpot(spots.last.id);
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -478,7 +495,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
 
             const SizedBox(width: 20),
 
-            // COLUMN 2: Cost Simulator (50% width)
+            // COLUMN 2: Cost Simulator
             Expanded(
               flex: 2,
               child: SingleChildScrollView(
@@ -512,7 +529,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
 
             const SizedBox(width: 20),
 
-            // COLUMN 3: Live Stats (25% width)
+            // COLUMN 3: Live Stats
             Expanded(
               flex: 1,
               child: SingleChildScrollView(

@@ -4,7 +4,8 @@ import 'package:user_interface/MODELS/parking_session.dart';
 import 'package:user_interface/SERVICES/AUTHETNTICATION%20HELPERS/authenticated_http_client.dart';
 
 // URL corretto
-const String _baseUrl = 'http://127.0.0.1:8000/api/sessions/';
+// const String _baseUrl = 'http://127.0.0.1:8000/api/sessions/';
+const String _baseUrl = 'http://10.0.2.2:8000/api/sessions/';
 
 class ParkingSessionService {
   final AuthenticatedHttpClient _httpClient = AuthenticatedHttpClient();

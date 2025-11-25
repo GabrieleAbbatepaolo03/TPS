@@ -3,16 +3,15 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:iconly/iconly.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:user_interface/MAIN%20UTILS/page_transition.dart';
+import 'package:intl/intl.dart';
 
 import 'package:user_interface/MODELS/parking_lot.dart';
 import 'package:user_interface/MODELS/vehicle.dart';
-// import 'package:user_interface/MODELS/tariff_config.dart'; // Non più strettamente necessario se usiamo il getter di ParkingLot
 import 'package:user_interface/SCREENS/root_screen.dart';
 import 'package:user_interface/SCREENS/start%20session/parking_cost_calculator.dart';
 import 'package:user_interface/SERVICES/vehicle_service.dart';
 import 'package:user_interface/SERVICES/parking_session_service.dart';
 import 'package:user_interface/MAIN UTILS/app_theme.dart';
-
 
 import 'package:user_interface/STATE/payment_state.dart';
 import 'package:user_interface/STATE/parking_session_state.dart';
@@ -35,9 +34,10 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
   Vehicle? _selectedVehicle;
   bool _isLoading = false;
   
-  // NUOVO STATO PER LA DURATA E IL COSTO
-  int _selectedDurationHours = 1; 
+  // Stato gestione durata
+  int _selectedDurationMinutes = 60; 
   double _prepaidCost = 0.0;
+  DateTime _plannedEndTime = DateTime.now();
 
   @override
   void initState() {
@@ -49,24 +49,53 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
     }
     _vehiclesFuture = _vehicleService.fetchMyVehicles();
     
-    // Calcolo iniziale del costo
-    _calculatePrepaidCost();
+    // 🚨 SE FLAT RATE: Imposta default a 24h (1440 min)
+    if (widget.parkingLot.tariffConfig.type == 'FIXED_DAILY') {
+        _selectedDurationMinutes = 1440; 
+    }
+    
+    _recalculateAll();
   }
   
-  // Funzione per ricalcolare il costo quando cambia la durata
-  void _calculatePrepaidCost() {
-      // Recupera la configurazione tariffaria dal parcheggio
+  void _recalculateAll() {
       final config = widget.parkingLot.tariffConfig;
+      final calculator = CostCalculator(config);
       
-      // Usa il calcolatore (assumendo che tu abbia creato parking_cost_calculator.dart)
-      final calculator = CostCalculator(config); 
+      final double durationHours = _selectedDurationMinutes / 60.0;
+      final double cost = calculator.calculateCostForHours(durationHours);
       
-      // Calcola il costo per la durata selezionata (in ore)
-      final cost = calculator.calculateCostForHours(_selectedDurationHours.toDouble());
-      
+      final DateTime now = DateTime.now();
+      final DateTime end = now.add(Duration(minutes: _selectedDurationMinutes));
+
       setState(() {
           _prepaidCost = cost;
+          _plannedEndTime = end;
       });
+  }
+
+  // Usato per tariffa oraria
+  void _adjustDuration(int deltaMinutes) {
+      setState(() {
+          _selectedDurationMinutes += deltaMinutes;
+          if (_selectedDurationMinutes < 10) _selectedDurationMinutes = 10;
+          if (_selectedDurationMinutes > 1440) _selectedDurationMinutes = 1440;
+      });
+      _recalculateAll();
+  }
+
+  // 🚨 Usato per tariffa Fixed Daily (+/- Giorni)
+  void _adjustDays(int deltaDays) {
+      setState(() {
+          int currentDays = _selectedDurationMinutes ~/ 1440;
+          if (currentDays == 0) currentDays = 1;
+          
+          int newDays = currentDays + deltaDays;
+          if (newDays < 1) newDays = 1;
+          if (newDays > 30) newDays = 30; // Max 30 giorni
+          
+          _selectedDurationMinutes = newDays * 1440; // Blocchi da 24h
+      });
+      _recalculateAll();
   }
 
   void _navigateToActiveSession() {
@@ -80,6 +109,53 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
     );
   }
 
+  void _showTariffDetailsDialog() {
+    final config = widget.parkingLot.tariffConfig;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Tariff Details', style: GoogleFonts.poppins(color: Colors.white)),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildInfoRow('Type', config.type.replaceAll('_', ' ')),
+              const Divider(color: Colors.white24),
+              if (config.type == 'FIXED_DAILY') 
+                _buildInfoRow('Daily Rate', '€${config.dailyRate.toStringAsFixed(2)}'),
+              if (config.type != 'FIXED_DAILY') ...[
+                _buildInfoRow('Day Rate', '€${config.dayBaseRate.toStringAsFixed(2)}/h'),
+                _buildInfoRow('Night Rate', '€${config.nightBaseRate.toStringAsFixed(2)}/h'),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close', style: TextStyle(color: Colors.blueAccent)),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: GoogleFonts.poppins(color: Colors.white70)),
+          Text(value, style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
   Future<void> _startSession() async {
     if (_selectedVehicle == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -87,25 +163,35 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
       );
       return;
     }
+    
+    String durationStr;
+    if (widget.parkingLot.tariffConfig.type == 'FIXED_DAILY') {
+        int days = _selectedDurationMinutes ~/ 1440;
+        durationStr = '$days Day${days > 1 ? 's' : ''} (24h block)';
+    } else {
+        final int h = _selectedDurationMinutes ~/ 60;
+        final int m = _selectedDurationMinutes % 60;
+        durationStr = '${h}h ${m}m';
+    }
 
-    final paymentNotifier = ref.read(paymentProvider.notifier);
-
-    // Conferma con il costo esatto calcolato
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Payment'),
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: Text('Confirm Payment', style: GoogleFonts.poppins(color: Colors.white)),
         content: Text(
-          'You are purchasing $_selectedDurationHours hours of parking for €${_prepaidCost.toStringAsFixed(2)}.\n\nThis amount is non-refundable if you end the session early.',
+          'You are purchasing $durationStr of parking.\n\nTotal: €${_prepaidCost.toStringAsFixed(2)}\n\nThis amount is non-refundable.',
+          style: GoogleFonts.poppins(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Pay & Start'),
+            style: FilledButton.styleFrom(backgroundColor: Colors.greenAccent),
+            child: const Text('Pay & Start', style: TextStyle(color: Colors.black)),
           ),
         ],
       ),
@@ -115,52 +201,35 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
 
     setState(() => _isLoading = true);
 
-    // Addebita l'importo esatto (Prepagato)
+    final paymentNotifier = ref.read(paymentProvider.notifier);
     await paymentNotifier.charge(_prepaidCost);
-    // Non serve setPreAuthorized(true) perché è un addebito diretto
-
-    final durationMinutes = _selectedDurationHours * 60;
 
     final session = await _sessionService.startSession(
       vehicleId: _selectedVehicle!.id,
       parkingLotId: widget.parkingLot.id,
-      durationMinutes: durationMinutes,
-      prepaidCost: _prepaidCost,       
+      durationMinutes: _selectedDurationMinutes,
+      prepaidCost: _prepaidCost,
     );
 
     if (mounted) {
-      if (session != null &&
-          session.vehicle != null &&
-          session.parkingLot != null) {
-        
-        // Avvia il controller locale
-        ref
-            .read(parkingControllerProvider.notifier)
-            .start(
+      if (session != null) {
+         ref.read(parkingControllerProvider.notifier).start(
               sessionId: session.id,
               vehicleId: session.vehicle!.id,
               parkingLotId: session.parkingLot!.id,
               startAt: session.startTime,
               tariffConfig: widget.parkingLot.tariffConfig, 
             );
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Session started for ${session.vehicle!.plate}'),
-          ),
-        );
-
         Navigator.of(context).push(slideRoute(const RootPage(initialIndex: 1)));
       } else {
-        // In caso di errore API, si potrebbe voler rimborsare (logica complessa omessa)
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to start session. Please try again.'),
+            backgroundColor: Colors.redAccent,
           ),
         );
       }
     }
-
     setState(() => _isLoading = false);
   }
 
@@ -171,6 +240,9 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
         body: Center(child: CircularProgressIndicator(color: Colors.white)),
       );
     }
+    
+    // 🚨 CONTROLLO TIPO TARIFFA
+    final isFixedDaily = widget.parkingLot.tariffConfig.type == 'FIXED_DAILY';
 
     return Scaffold(
       body: Container(
@@ -180,34 +252,39 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(context),
-              
-              // 1. Dettagli Parcheggio e Tariffa
-              _buildParkingDetails(),
-              
-              const SizedBox(height: 10),
-              
-              // 2. Selettore Durata (NUOVO)
-              _buildDurationSelector(),
-              
-              const SizedBox(height: 10),
-              
-              // 3. Selettore Veicolo (Titolo)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Text(
-                  'Select Vehicle',
-                  style: GoogleFonts.poppins(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _buildParkingDetails(),
+                      const SizedBox(height: 20),
+                      
+                      // 🚨 SWITCH WIDGET
+                      isFixedDaily 
+                          ? _buildDailyDurationSelector() 
+                          : _buildPrecisionDurationSelector(),
+                      
+                      const SizedBox(height: 20),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Select Vehicle',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white.withOpacity(0.8),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _buildVehicleSelector(),
+                    ],
                   ),
                 ),
               ),
-              
-              // 4. Lista Veicoli
-              Expanded(child: _buildVehicleSelector()),
-              
-              // 5. Bottone Conferma
               _buildConfirmButton(),
             ],
           ),
@@ -220,22 +297,17 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
     return Padding(
       padding: const EdgeInsets.all(10.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
             icon: const Icon(IconlyLight.arrow_left, color: Colors.white),
-            onPressed: () {
-              Navigator.of(context).push(
-                slideRoute(const RootPage(initialIndex: 1)),
-              );
-            },
+            onPressed: () => Navigator.of(context).push(slideRoute(const RootPage(initialIndex: 1))),
           ),
-          Text(
-            'Start Session',
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
+          Expanded(
+            child: Center(
+              child: Text(
+                'Start Session',
+                style: GoogleFonts.poppins(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w500),
+              ),
             ),
           ),
           const SizedBox(width: 48),
@@ -246,239 +318,383 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
 
   Widget _buildParkingDetails() {
     return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(20),
-      margin: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color.fromARGB(25, 255, 255, 255),
+        color: Colors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white12),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             widget.parkingLot.name,
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-            ),
+            style: GoogleFonts.poppins(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(IconlyLight.location, color: Colors.white70, size: 16),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '${widget.parkingLot.address}, ${widget.parkingLot.city}',
-                  style: GoogleFonts.poppins(
-                    color: Colors.white70,
-                    fontSize: 14,
+          Text(
+            widget.parkingLot.address,
+            style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 10),
+          
+          InkWell(
+            onTap: _showTariffDetailsDialog,
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.blueAccent.withOpacity(0.5)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(IconlyLight.info_circle, color: Colors.blueAccent, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    _getTariffLabel(),
+                    style: GoogleFonts.poppins(color: Colors.blueAccent, fontWeight: FontWeight.w600, fontSize: 12),
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
+                ],
+              ),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  String _getTariffLabel() {
+    final type = widget.parkingLot.tariffConfig.type;
+    if (type == 'FIXED_DAILY') return 'Daily Flat Rate';
+    if (type == 'HOURLY_LINEAR') return 'Hourly Linear Rate';
+    return 'Variable Hourly Rate';
+  }
+
+  // 🌟 SELETTORE GIORNALIERO (FLAT)
+  Widget _buildDailyDurationSelector() {
+    final int days = _selectedDurationMinutes ~/ 1440;
+    final String endTimeStr = DateFormat('dd MMM, HH:mm').format(_plannedEndTime);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.black26,
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: Colors.amber.withOpacity(0.5), width: 1.5),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('FLAT COST', style: GoogleFonts.poppins(color: Colors.amber, fontSize: 12, letterSpacing: 1, fontWeight: FontWeight.bold)),
+                  Text(
+                    '€${_prepaidCost.toStringAsFixed(2)}',
+                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('VALID UNTIL', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12, letterSpacing: 1)),
+                  Text(
+                    endTimeStr,
+                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 15),
-          const Divider(color: Colors.white24),
-          const SizedBox(height: 10),
           
-          // Info sulla Tariffa
-          _buildTariffInfo(),
+          const Divider(color: Colors.white12, height: 30),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildBigCircleButton(icon: Icons.remove, onTap: () => _adjustDays(-1)),
+              
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                width: 140,
+                alignment: Alignment.center,
+                child: Column(
+                  children: [
+                    Text(
+                      '$days',
+                      style: GoogleFonts.poppins(fontSize: 50, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    Text(
+                      days == 1 ? 'Day' : 'Days',
+                      style: GoogleFonts.poppins(fontSize: 18, color: Colors.white54),
+                    ),
+                  ],
+                ),
+              ),
+              
+              _buildBigCircleButton(icon: Icons.add, onTap: () => _adjustDays(1)),
+            ],
+          ),
+          
+          const SizedBox(height: 15),
+          Text(
+            "Fixed price per 24h. Covers full day.",
+            style: GoogleFonts.poppins(color: Colors.white30, fontSize: 12, fontStyle: FontStyle.italic),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🌟 SELETTORE PRECISIONE (ORARIO)
+  Widget _buildPrecisionDurationSelector() {
+    final int hours = _selectedDurationMinutes ~/ 60;
+    final int minutes = _selectedDurationMinutes % 60;
+    final String endTimeStr = DateFormat('HH:mm').format(_plannedEndTime);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.black26,
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('TOTAL COST', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12, letterSpacing: 1)),
+                  Text(
+                    '€${_prepaidCost.toStringAsFixed(2)}',
+                    style: GoogleFonts.poppins(color: Colors.greenAccent, fontSize: 28, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('ENDS AT', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12, letterSpacing: 1)),
+                  Text(
+                    endTimeStr,
+                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          
+          const Divider(color: Colors.white12, height: 30),
+
+          // 1. Controlli Principali
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildBigCircleButton(icon: Icons.remove, onTap: () => _adjustDuration(-1)),
+              
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 15),
+                width: 180, 
+                alignment: Alignment.center,
+                child: RichText(
+                  textAlign: TextAlign.center,
+                  text: TextSpan(
+                    children: [
+                      TextSpan(text: '$hours', style: GoogleFonts.poppins(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white)),
+                      TextSpan(text: 'h ', style: GoogleFonts.poppins(fontSize: 20, color: Colors.white70)),
+                      TextSpan(text: '$minutes', style: GoogleFonts.poppins(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white)),
+                      TextSpan(text: 'm', style: GoogleFonts.poppins(fontSize: 20, color: Colors.white70)),
+                    ],
+                  ),
+                ),
+              ),
+              
+              _buildBigCircleButton(icon: Icons.add, onTap: () => _adjustDuration(1)),
+            ],
+          ),
+
+          const SizedBox(height: 15),
+          
+          // 2. Slider
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 6,
+              activeTrackColor: Colors.blueAccent,
+              inactiveTrackColor: Colors.white10,
+              thumbColor: Colors.white,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
+            ),
+            child: Slider(
+              value: _selectedDurationMinutes.toDouble(),
+              min: 10, 
+              max: 1440, 
+              divisions: (1440 - 10) ~/ 10,
+              onChanged: (val) {
+                setState(() {
+                  _selectedDurationMinutes = val.toInt();
+                });
+                _recalculateAll();
+              },
+            ),
+          ),
+          
+          const SizedBox(height: 10),
+
+          // 3. Bottoni Rapidi (2 Righe)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildQuickButton('+10m', 10, color: Colors.greenAccent.withOpacity(0.2)),
+              _buildQuickButton('+15m', 15, color: Colors.greenAccent.withOpacity(0.2)),
+              _buildQuickButton('+30m', 30, color: Colors.greenAccent.withOpacity(0.2)),
+              _buildQuickButton('+1h', 60, color: Colors.greenAccent.withOpacity(0.2)),
+              _buildQuickButton('+2h', 120, color: Colors.greenAccent.withOpacity(0.2)),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildQuickButton('-10m', -10, color: Colors.redAccent.withOpacity(0.2)),
+              _buildQuickButton('-15m', -15, color: Colors.redAccent.withOpacity(0.2)),
+              _buildQuickButton('-30m', -30, color: Colors.redAccent.withOpacity(0.2)),
+              _buildQuickButton('-1h', -60, color: Colors.redAccent.withOpacity(0.2)),
+              _buildQuickButton('-2h', -120, color: Colors.redAccent.withOpacity(0.2)),
+            ],
+          ),
         ],
       ),
     );
   }
   
-  Widget _buildTariffInfo() {
-      final config = widget.parkingLot.tariffConfig;
-      String infoText = '';
-      
-      if (config.type == 'FIXED_DAILY') {
-          infoText = 'Flat Daily Rate: €${config.dailyRate.toStringAsFixed(2)}';
-      } else if (config.type == 'HOURLY_LINEAR') {
-          infoText = 'Hourly Rate: €${config.dayBaseRate.toStringAsFixed(2)}/h';
-          if (config.nightBaseRate != config.dayBaseRate) {
-              infoText += '\nNight Rate: €${config.nightBaseRate.toStringAsFixed(2)}/h (${config.nightStartTime}-${config.nightEndTime})';
-          }
-      } else {
-          infoText = 'Variable Rate:\nDay: €${config.dayBaseRate}/h | Night: €${config.nightBaseRate}/h\n+ Multipliers apply based on duration.';
-      }
-      
-      return Text(
-          infoText, 
-          style: GoogleFonts.poppins(color: Colors.greenAccent, fontSize: 13, fontWeight: FontWeight.w500)
-      );
+  Widget _buildBigCircleButton({required IconData icon, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(40),
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white30, width: 1.5),
+          boxShadow: [
+             BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))
+          ]
+        ),
+        child: Icon(icon, color: Colors.white, size: 30),
+      ),
+    );
   }
-
-  // Widget per selezionare la durata
-  Widget _buildDurationSelector() {
-      return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: Colors.white10),
-          ),
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                  Text('Select Duration', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14)),
-                  const SizedBox(height: 10),
-                  Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                          // Mostra Ore
-                          Text(
-                              '$_selectedDurationHours Hours', 
-                              style: GoogleFonts.poppins(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)
-                          ),
-                          // Mostra Costo Calcolato
-                          Text(
-                              '€${_prepaidCost.toStringAsFixed(2)}', 
-                              style: GoogleFonts.poppins(color: Colors.greenAccent, fontSize: 24, fontWeight: FontWeight.bold)
-                          ),
-                      ],
-                  ),
-                  Slider(
-                      value: _selectedDurationHours.toDouble(),
-                      min: 1,
-                      max: 24, // Massimo 24 ore per sessione
-                      divisions: 23,
-                      activeColor: Colors.blueAccent,
-                      inactiveColor: Colors.white24,
-                      onChanged: (value) {
-                          setState(() {
-                              _selectedDurationHours = value.toInt();
-                          });
-                          _calculatePrepaidCost(); // Ricalcola il costo al cambio
-                      },
-                  ),
-              ],
-          ),
+  
+  Widget _buildQuickButton(String label, int minutes, {Color? color}) {
+      return InkWell(
+        onTap: () => _adjustDuration(minutes),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+            width: 50,
+            height: 35,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+                color: color ?? Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white10)
+            ),
+            child: Text(label, style: GoogleFonts.poppins(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+        ),
       );
   }
 
   Widget _buildVehicleSelector() {
-    return FutureBuilder<List<Vehicle>>(
+      return FutureBuilder<List<Vehicle>>(
       future: _vehiclesFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.white),
-          );
-        }
-
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(
-            child: Text(
-              'No vehicles found.\nPlease add a vehicle in your profile.',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 16),
-            ),
-          );
-        }
-
+        if (!snapshot.hasData) return const SizedBox.shrink();
         final vehicles = snapshot.data!;
+        
         if (_selectedVehicle == null && vehicles.isNotEmpty) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              setState(() {
-                _selectedVehicle = vehicles.first;
-              });
-            }
-          });
+             WidgetsBinding.instance.addPostFrameCallback((_) {
+               if(mounted) setState(() => _selectedVehicle = vehicles.first);
+             });
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          itemCount: vehicles.length,
-          itemBuilder: (context, index) {
-            final vehicle = vehicles[index];
-            final bool isSelected = _selectedVehicle?.id == vehicle.id;
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? Colors.blueAccent.withOpacity(0.3)
-                    : const Color.fromARGB(15, 255, 255, 255),
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(
-                  color: isSelected ? Colors.blueAccent : Colors.transparent,
-                  width: 2,
-                ),
-              ),
-              child: ListTile(
-                leading: Icon(
-                  // Se il veicolo è preferito, usa la stella piena, altrimenti vuota
-                  // (Assumendo che vehicle abbia isFavorite)
-                  vehicle.isFavorite ? IconlyBold.star : IconlyLight.activity,
-                  color: isSelected ? Colors.blueAccent : (vehicle.isFavorite ? Colors.amber : Colors.white),
-                  size: 30,
-                ),
-                title: Text(
-                  vehicle.plate,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                subtitle: Text(
-                  vehicle.name,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
-                onTap: () {
-                  setState(() {
-                    _selectedVehicle = vehicle;
-                  });
-                },
-              ),
-            );
-          },
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            physics: const NeverScrollableScrollPhysics(), 
+            shrinkWrap: true,
+            itemCount: vehicles.length,
+            itemBuilder: (ctx, index) {
+                final v = vehicles[index];
+                final isSelected = v.id == _selectedVehicle?.id;
+                
+                return GestureDetector(
+                    onTap: () => setState(() => _selectedVehicle = v),
+                    child: Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(15),
+                        decoration: BoxDecoration(
+                            color: isSelected ? Colors.blueAccent : Colors.white10,
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(color: isSelected ? Colors.white : Colors.transparent),
+                        ),
+                        child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                                Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                        Text(v.plate, style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                        Text(v.name, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13)),
+                                    ],
+                                ),
+                                if (isSelected)
+                                    const Icon(Icons.check_circle, color: Colors.white, size: 24)
+                            ],
+                        ),
+                    ),
+                );
+            },
         );
       },
     );
   }
 
   Widget _buildConfirmButton() {
-    final isActive = ref.watch(parkingControllerProvider).active;
-
-    return Padding(
+       return Padding(
       padding: const EdgeInsets.all(20.0),
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blueAccent,
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            backgroundColor: Colors.greenAccent,
+            foregroundColor: Colors.black,
+            padding: const EdgeInsets.symmetric(vertical: 18),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15),
             ),
+            elevation: 5,
           ),
-          onPressed: _isLoading || isActive ? null : _startSession,
+          onPressed: _isLoading ? null : _startSession,
           child: _isLoading
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 3,
-                  ),
-                )
+              ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
               : Text(
-                  isActive ? 'Session Active' : 'Pay & Start Session',
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  'PAY €${_prepaidCost.toStringAsFixed(2)} & START',
+                  style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
         ),
       ),

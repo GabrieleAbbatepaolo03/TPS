@@ -10,7 +10,7 @@ Future<Parking?> showAddParkingDialog(
   final nameController = TextEditingController();
   final addressController = TextEditingController();
   final totalSpotsController = TextEditingController();
-  final rateController = TextEditingController();
+  // RIMOSSO: rateController
   final latController = TextEditingController();
   final lngController = TextEditingController();
   final newCityController = TextEditingController();
@@ -18,7 +18,6 @@ Future<Parking?> showAddParkingDialog(
 
   final cityOptions = ['New City...', ...existingCities];
 
-  // Since knownCity is removed, we default to the first option
   String selectedCityOption = cityOptions.first;
   bool isLoading = false;
 
@@ -31,7 +30,6 @@ Future<Parking?> showAddParkingDialog(
           void handleSave() async {
             if (!formKey.currentState!.validate()) return;
             
-            // Validation: Ensure a city is selected/entered
             if (selectedCityOption == 'New City...' && newCityController.text.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Please select or enter a new city name.')),
@@ -41,7 +39,6 @@ Future<Parking?> showAddParkingDialog(
 
             setState(() => isLoading = true);
 
-            // Determine the final city name
             final finalCity = (selectedCityOption != 'New City...' 
                               ? selectedCityOption 
                               : newCityController.text.trim());
@@ -53,29 +50,32 @@ Future<Parking?> showAddParkingDialog(
               address: addressController.text,
               totalSpots: int.parse(totalSpotsController.text), 
               occupiedSpots: 0,
-              ratePerHour: double.parse(rateController.text),
+              // NUOVI CAMPI AGGIUNTI (Inizializzati a 0)
+              todayEntries: 0, 
+              todayRevenue: 0.0,
+              
               latitude: double.tryParse(latController.text),
               longitude: double.tryParse(lngController.text),
-              tariffConfigJson: Parking.defaultTariffConfig.toJson(), 
+              tariffConfigJson: Parking.defaultTariffConfig.toJson(), // Usa toJsonString()
             );
 
             try {
-              // 1. Save the parking first
+              // 1. Salva il parcheggio
               final savedParking = await ParkingService.saveParking(newParkingData);
               
-              // 2. Get requested spots count
+              // 2. Crea i posti
               final int spotsToCreate = int.parse(totalSpotsController.text);
 
-              // 3. Create spots in the database
               if (spotsToCreate > 0) {
                 List<Future> spotFutures = [];
+                // Nota: Per grandi numeri, idealmente il backend dovrebbe avere un endpoint 'bulk_create'
                 for (int i = 0; i < spotsToCreate; i++) {
                   spotFutures.add(ParkingService.addSpot(savedParking.id));
                 }
                 await Future.wait(spotFutures);
               }
 
-              // 4. Build final object for immediate UI update
+              // 3. Costruisci l'oggetto finale per aggiornare la UI locale
               final finalParking = Parking(
                 id: savedParking.id,
                 name: savedParking.name,
@@ -83,10 +83,13 @@ Future<Parking?> showAddParkingDialog(
                 address: savedParking.address,
                 totalSpots: spotsToCreate, 
                 occupiedSpots: 0,
-                ratePerHour: savedParking.ratePerHour,
+                // NUOVI CAMPI AGGIUNTI
+                todayEntries: 0, 
+                todayRevenue: 0.0,
+                
                 latitude: savedParking.latitude,
                 longitude: savedParking.longitude,
-                tariffConfigJson: savedParking.tariffConfig.toJson(),
+                tariffConfigJson: savedParking.tariffConfigJson,
               );
 
               Navigator.of(context).pop(finalParking);
@@ -134,7 +137,7 @@ Future<Parking?> showAddParkingDialog(
                         ),
                         const SizedBox(height: 20),
 
-                        // START: City Selection Logic (ALWAYS VISIBLE)
+                        // City Selection
                         Row(
                           children: [
                             Expanded(child: Container(height: 1, color: Colors.white30)),
@@ -170,19 +173,15 @@ Future<Parking?> showAddParkingDialog(
                         const SizedBox(height: 20),
                         Container(height: 1, color: Colors.white30),
                         const SizedBox(height: 20),
-                        // END: City Selection Logic
 
                         _buildStyledTextField(nameController, 'Parking Name', false, isEnabled: !isLoading),
                         const SizedBox(height: 16),
                         _buildStyledTextField(addressController, 'Address', false, isEnabled: !isLoading),
                         const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(child: _buildStyledTextField(totalSpotsController, 'Spots', true, isEnabled: !isLoading)),
-                            const SizedBox(width: 10),
-                            Expanded(child: _buildStyledTextField(rateController, 'Base Rate (€/h)', true, isEnabled: !isLoading)),
-                          ],
-                        ),
+                        
+                        // MODIFICATO: Solo Total Spots, rimossa la tariffa
+                        _buildStyledTextField(totalSpotsController, 'Total Spots', true, isEnabled: !isLoading),
+                        
                         const SizedBox(height: 16),
                         Row(
                           children: [

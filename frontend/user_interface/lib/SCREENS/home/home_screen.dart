@@ -81,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final ui.FrameInfo fi = await codec.getNextFrame();
   final ui.Image largeImage = fi.image;
 
-  const int targetSize = 70; 
+  const int targetSize = 200; 
 
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
@@ -121,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final ui.FrameInfo fi = await codec.getNextFrame();
   final ui.Image largeImage = fi.image;
 
-  const int targetSize = 70;
+  const int targetSize = 200;
 
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
@@ -188,24 +188,44 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _getUserLocation() async {
-    bool accessGranted = false;
-    try {
-      final Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      _currentPosition = LatLng(position.latitude, position.longitude);
-      accessGranted = true;
-    } catch (e) {
-      accessGranted = false;
+  try {
+    // 1. Verifica se i servizi di geolocazione sono attivi
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      await Geolocator.openLocationSettings();
+      return;
     }
-    if (!mounted) return;
+
+    // 2. Controllo permessi
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return;
+    }
+
+    // 3. Ottieni posizione
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
 
     setState(() {
-      _locationAccessGranted = accessGranted;
+      _currentPosition = LatLng(position.latitude, position.longitude);
       _isLocationLoading = false;
+      _locationAccessGranted = true;
     });
+
+    // aggiorna marker e parcheggi
     _filterAndDisplayParkings();
+  } catch (e) {
+    debugPrint("Errore GPS: $e");
   }
+}
 
   void _handleLogout(BuildContext context) async {
     final storageService = SecureStorageService();

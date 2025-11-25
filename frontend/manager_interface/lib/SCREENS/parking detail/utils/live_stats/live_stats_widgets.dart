@@ -30,33 +30,42 @@ class OccupancyCard extends StatelessWidget {
           ),
         ),
         const Divider(color: Colors.white12, height: 20),
-        Stack(
-          alignment: Alignment.center,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            SizedBox(
-              height: 120,
-              width: 120,
-              child: CircularProgressIndicator(
-                value: percentage / 100,
-                backgroundColor: Colors.white.withOpacity(0.1),
-                valueColor: AlwaysStoppedAnimation<Color>(color),
-                strokeWidth: 10,
-              ),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  height: 120,
+                  width: 120,
+                  child: CircularProgressIndicator(
+                    value: percentage / 100,
+                    backgroundColor: Colors.white.withOpacity(0.1),
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
+                    strokeWidth: 10,
+                  ),
+                ),
+                Text(
+                  '${percentage.toStringAsFixed(1)}%',
+                  style: GoogleFonts.poppins(color: color, fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
-            Text(
-              '${percentage.toStringAsFixed(1)}%',
-              style: GoogleFonts.poppins(color: color, fontSize: 24, fontWeight: FontWeight.bold),
+            const SizedBox(width: 30),
+            Column(
+              children: [
+                Text(
+                  'Total: $totalSpots spots',
+                  style: GoogleFonts.poppins(color: Colors.white70),
+                ),
+                Text(
+                  'Occupied: $occupiedSpots spots',
+                  style: GoogleFonts.poppins(color: color),
+                ),
+              ],
             ),
           ],
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Total: $totalSpots spots',
-          style: GoogleFonts.poppins(color: Colors.white70),
-        ),
-        Text(
-          'Occupied: $occupiedSpots spots',
-          style: GoogleFonts.poppins(color: color),
         ),
       ],
     );
@@ -76,7 +85,7 @@ class RevenueCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Projected Daily Revenue',
+          'Daily Revenue',
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontSize: 18,
@@ -94,7 +103,7 @@ class RevenueCard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          'Projection based on current occupancy and tariff rules.',
+          'Total revenue accumulated today from ended sessions.',
           style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
         ),
       ],
@@ -118,7 +127,7 @@ class DailyEntriesCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Estimated Daily Entries',
+          'Daily Entries',
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontSize: 18,
@@ -136,7 +145,7 @@ class DailyEntriesCard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          'Estimate based on an average stay duration of ${avgStayHours.toStringAsFixed(1)} hours.',
+          'Total number of vehicles that entered the parking lot today.',
           style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
         ),
       ],

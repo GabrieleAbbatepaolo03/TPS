@@ -7,7 +7,11 @@ class Parking {
   final String address;
   final int totalSpots;
   final int occupiedSpots;
-  final double ratePerHour;
+  
+  // NUOVI CAMPI
+  final int todayEntries;
+  final double todayRevenue;
+
   final String tariffConfigJson; 
   final double? latitude;
   final double? longitude;
@@ -19,23 +23,23 @@ class Parking {
     required this.address,
     required this.totalSpots,
     required this.occupiedSpots,
-    required this.ratePerHour,
+    required this.todayEntries,
+    required this.todayRevenue,
     required this.tariffConfigJson,
     this.latitude,
     this.longitude,
   });
 
-  // --- GETTER PER LA CONVERSIONE AL VOLO ---
-  // Questo risolve l'errore che avevi: ora accedi all'oggetto TariffConfig tramite questo getter.
   TariffConfig get tariffConfig {
-    if (tariffConfigJson.isEmpty) {
-        return Parking.defaultTariffConfig;
-    }
+    if (tariffConfigJson.isEmpty) return Parking.defaultTariffConfig;
     return TariffConfig.fromJson(tariffConfigJson);
   }
-
-  // --- STATIC GETTERS AND UTILS  ---
   
+  double get displayRate {
+      if (tariffConfig.type == 'FIXED_DAILY') return tariffConfig.dailyRate;
+      return tariffConfig.dayBaseRate;
+  }
+
   static TariffConfig get defaultTariffConfig {
     return TariffConfig(
       type: 'HOURLY_LINEAR',
@@ -48,14 +52,6 @@ class Parking {
     );
   }
 
-  static double _parseRate(dynamic value) {
-    if (value == null) return 0.0;
-    if (value is num) return value.toDouble();
-    final s = value.toString();
-    final normalized = s.replaceAll(',', '.');
-    return double.tryParse(normalized) ?? 0.0;
-  }
-
   static double? _parseNullableDouble(dynamic value) {
     if (value == null) return null;
     if (value is num) return value.toDouble();
@@ -64,32 +60,32 @@ class Parking {
     return double.tryParse(normalized);
   }
   
-  // --- FACTORY CONSTRUCTOR ---
-  
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString()) ?? 0.0;
+  }
+
   factory Parking.fromJson(Map<String, dynamic> json) {
     final String rawTariffJson = json['tariff_config_json'] ?? '';
-    // NOTA: Non decodifichiamo più TariffConfig qui, la memorizziamo come stringa.
 
     return Parking(
       id: json['id'] as int,
       name: json['name'] ?? '',
       city: json['city'] ?? '',
       address: json['address'] ?? '',
-      totalSpots: (json['total_spots'] is int)
-          ? json['total_spots'] as int
-          : (int.tryParse('${json['total_spots']}') ?? 0),
-      occupiedSpots: (json['occupied_spots'] is int)
-          ? json['occupied_spots'] as int
-          : (int.tryParse('${json['occupied_spots']}') ?? 0),
-      ratePerHour: _parseRate(json['rate'] ?? json['rate_per_hour']),
-      // Passiamo la stringa grezza
+      totalSpots: json['total_spots'] is int ? json['total_spots'] : (int.tryParse('${json['total_spots']}') ?? 0),
+      occupiedSpots: json['occupied_spots'] is int ? json['occupied_spots'] : (int.tryParse('${json['occupied_spots']}') ?? 0),
+      
+      // MAPPING NUOVI CAMPI
+      todayEntries: json['today_entries'] is int ? json['today_entries'] : (int.tryParse('${json['today_entries']}') ?? 0),
+      todayRevenue: _parseDouble(json['today_revenue']),
+      
       tariffConfigJson: rawTariffJson, 
       latitude: _parseNullableDouble(json['latitude']),
       longitude: _parseNullableDouble(json['longitude']),
     );
   }
-
-  // --- SERIALIZATION TO JSON ---
 
   Map<String, dynamic> toJson() {
     return {
@@ -99,15 +95,13 @@ class Parking {
       'address': address,
       'total_spots': totalSpots,
       'occupied_spots': occupiedSpots,
-      'rate': ratePerHour,
+      'tariff_config_json': tariffConfigJson, 
       'latitude': latitude,
       'longitude': longitude,
-      // Usiamo la stringa JSON grezza o la generiamo dall'oggetto TariffConfig
-      'tariff_config_json': tariffConfigJson.isNotEmpty ? tariffConfigJson : tariffConfig.toJson(), 
+      'today_entries': todayEntries,
+      'today_revenue': todayRevenue,
     };
   }
 
-  // --- DERIVED PROPERTIES ---
-  
   int get availableSpots => totalSpots - occupiedSpots;
 }

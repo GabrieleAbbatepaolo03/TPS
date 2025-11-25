@@ -1,7 +1,7 @@
 from django.db import models
 from django.conf import settings
-from parkings.models import Parking 
 from django.utils import timezone
+from parkings.models import Parking
 
 class Vehicle(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -19,11 +19,21 @@ class Vehicle(models.Model):
 class ParkingSession(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True)
-    parking_lot = models.ForeignKey(Parking, on_delete=models.SET_NULL, null=True, blank=True)
+
+    parking_lot = models.ForeignKey(
+        Parking, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='sessions' # <--- FONDAMENTALE PER IL CONTEGGIO
+    )
+    
     start_time = models.DateTimeField(default=timezone.now)
     end_time = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     total_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    
+    # ... (Campi prerischio: duration_purchased_minutes, planned_end_time, etc. rimangono uguali)
     duration_purchased_minutes = models.IntegerField(default=0)
     planned_end_time = models.DateTimeField(null=True, blank=True)
     prepaid_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)

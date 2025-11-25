@@ -634,6 +634,7 @@ html.dark .changelist-actions span[class] {
 
 /* === Fix Unfold bottom bulk actions bar background (dark theme) === */
 
+<<<<<<< HEAD
 /* 整个底部操作栏外层容器 */
 .dark #changelist-actions-wrapper,
 html.dark #changelist-actions-wrapper {
@@ -642,12 +643,23 @@ html.dark #changelist-actions-wrapper {
 }
 
 /* 内层 .changelist-actions 容器防止再涂白 */
+=======
+.dark #changelist-actions-wrapper,
+html.dark #changelist-actions-wrapper {
+    background: #0f172a !important;             
+    box-shadow: none !important;                
+}
+
+>>>>>>> 75cc0575079780a62d5cd7605c3585a35baa6238
 .dark #changelist-actions-wrapper .changelist-actions,
 html.dark #changelist-actions-wrapper .changelist-actions {
     background: transparent !important;
 }
 
+<<<<<<< HEAD
 /* 确保底部栏里的文字和控件在深色背景上可读 */
+=======
+>>>>>>> 75cc0575079780a62d5cd7605c3585a35baa6238
 .dark #changelist-actions-wrapper select,
 .dark #changelist-actions-wrapper label,
 .dark #changelist-actions-wrapper span,
@@ -658,3 +670,66 @@ html.dark #changelist-actions-wrapper span,
 html.dark #changelist-actions-wrapper button {
     color: #e2e8f0 !important;
 }
+<<<<<<< HEAD
+=======
+
+
+
+
+/* ===== FIX: actions bar text color in LIGHT theme ===== */
+body:not(.dark) .changelist-actions,
+body:not(.dark) .changelist-actions *,
+body:not(.dark) #changelist-actions-wrapper,
+body:not(.dark) #changelist-actions-wrapper * {
+    color: #111827 !important;  
+}
+
+
+/* === DELETE bottom white action bar in DARK mode === */
+html.dark div[class*="backdrop-blur-xs"][class*="bg-white"],
+html.dark div.lg\:bg-white\/80,
+html.dark div[class*="bg-white/80"] {
+    background: transparent !important;
+}
+
+
+/* === LIGHT: remove purple/white outer strip of bottom actions bar === */
+body:not(.dark) div[class*="backdrop-blur-xs"][class*="bg-white/80"] {
+    background: transparent !important;
+}
+
+
+/* === LIGHT: make selection checkboxes clearly visible === */
+body:not(.dark) td input[type="checkbox"],
+body:not(.dark) th input[type="checkbox"] {
+    accent-color: #8b5cf6;
+    width: 1.05rem;
+    height: 1.05rem;
+}
+
+body:not(.dark) td input[type="checkbox"]:checked,
+body:not(.dark) th input[type="checkbox"]:checked {
+    background-color: #8b5cf6 !important;
+    border-color: #8b5cf6 !important;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.45);
+}
+
+
+/* Remove purple action bar background */
+div[class*="bg-primary-600"],
+div[class*="bg-primary-500"],
+div[class*="bg-primary"] {
+    background: transparent !important;
+}
+
+/* Ensure text stays visible */
+#changelist-actions-wrapper,
+#changelist-actions-wrapper * {
+    color: #111 !important;  
+}
+
+html.dark #changelist-actions-wrapper,
+html.dark #changelist-actions-wrapper * {
+    color: #e2e8f0 !important;  
+}
+>>>>>>> 75cc0575079780a62d5cd7605c3585a35baa6238
