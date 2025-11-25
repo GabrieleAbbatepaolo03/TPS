@@ -4,7 +4,8 @@ import 'package:officer_interface/services/authentication%20helpers/authenticate
 
 class ControllerService {
   static final AuthenticatedHttpClient _httpClient = AuthenticatedHttpClient();
-  static const String _apiRoot = 'http://127.0.0.1:8000/api'; // Base API root
+  //static const String _apiRoot = 'http://127.0.0.1:8000/api'; // Base API root
+  static const String _apiRoot = 'http://10.0.2.2:8000/api';
 
   // Calls: api/sessions/search_by_plate/?plate=XXXXXX
   static Future<ParkingSession?> searchActiveSessionByPlate(String plate) async {

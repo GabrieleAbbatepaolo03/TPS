@@ -237,7 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "ACTIVE SESSION VERIFIED",
+                "ACTIVE SESSION",
                 style: GoogleFonts.poppins(color: Colors.greenAccent, fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const Icon(Icons.check_circle, color: Colors.greenAccent, size: 30),

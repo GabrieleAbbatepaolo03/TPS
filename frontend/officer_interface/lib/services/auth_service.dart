@@ -6,7 +6,9 @@ import 'package:officer_interface/services/authentication%20helpers/secure_stora
 
 class AuthService {
   // Assumed correct URL from tps_backend/urls.py (api/users/)
-  static const String baseUrl = "http://127.0.0.1:8000/api/users";
+  //static const String baseUrl = "http://127.0.0.1:8000/api/users";
+  static const String baseUrl = "http://10.0.2.2:8000/api/users";
+
   static final SecureStorageService _storageService = SecureStorageService();
 
   // Unified login method for Manager or Controller
