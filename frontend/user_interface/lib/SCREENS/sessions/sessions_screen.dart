@@ -11,8 +11,8 @@ import 'package:user_interface/MODELS/parking_lot.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:user_interface/STATE/parking_session_state.dart';
 import 'package:user_interface/STATE/payment_state.dart';
-// Importa i widget che abbiamo creato (assicurati che i file esistano)
-import 'utils/limited_history_list.dart'; 
+import 'package:user_interface/SCREENS/payment/choose_payment_method_screen.dart';
+import 'utils/limited_history_list.dart';
 
 class SessionsScreen extends ConsumerStatefulWidget {
   const SessionsScreen({super.key});
@@ -35,18 +35,15 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
 
   void _loadSessions() {
     setState(() {
-      // 🚨 CORREZIONE QUI: Rimuovi 'active: false'. 
-      // Ora scarica TUTTE le sessioni (attive e storiche).
-      _allSessionsFuture = _sessionService.fetchSessions(); 
+      _allSessionsFuture = _sessionService.fetchSessions();
     });
 
     _allSessionsFuture.then((sessions) {
-      // Cerca se c'è una sessione attiva nella lista scaricata
       final active = sessions.where((s) => s.isActive).firstOrNull;
 
       if (active != null) {
-        // Se trovata, sincronizza il controller locale
-        final config = active.parkingLot?.tariffConfig ?? ParkingLot.defaultTariffConfig;
+        final config =
+            active.parkingLot?.tariffConfig ?? ParkingLot.defaultTariffConfig;
 
         ref.read(parkingControllerProvider.notifier).start(
               sessionId: active.id,
@@ -56,11 +53,9 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
               tariffConfig: config,
             );
       } else {
-        // Se non ci sono sessioni attive nel backend, resetta lo stato locale
-        // (Utile se la sessione è scaduta o chiusa altrove)
         if (ref.read(parkingControllerProvider).active) {
-             ref.read(parkingControllerProvider.notifier).reset();
-             ref.read(paymentProvider.notifier).resetPreAuthorization();
+          ref.read(parkingControllerProvider.notifier).reset();
+          ref.read(paymentProvider.notifier).resetPreAuthorization();
         }
       }
     });
@@ -70,27 +65,60 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
     if (_isStopping) return;
     setState(() => _isStopping = true);
 
-    // Invia la richiesta di stop
     final endedSession = await _sessionService.endSession(sessionId);
 
     if (mounted && endedSession != null) {
-      // Usa il costo totale restituito dal server
+      // Scenario B: pay only the remaining amount (extra > 0)
       final finalCost = endedSession.totalCost ?? 0.0;
-      
-      await ref.read(paymentProvider.notifier).charge(finalCost);
+      final prepaidCost = endedSession.prepaidCost;
+      final extra = finalCost - prepaidCost;
+
+      if (extra > 0.0001) {
+        final chosen = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => ChoosePaymentMethodScreen(
+              amount: extra,
+              title: 'Pay the remaining amount',
+            ),
+          ),
+        );
+
+        if (chosen == true) {
+          await ref.read(paymentProvider.notifier).charge(extra);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Extra payment completed. Charged €${extra.toStringAsFixed(2)}',
+                ),
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Session ended. Extra payment of €${extra.toStringAsFixed(2)} is pending.',
+                ),
+              ),
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Parking stopped. No extra payment needed.'),
+            ),
+          );
+        }
+      }
 
       ref.read(parkingControllerProvider.notifier).reset();
       ref.read(paymentProvider.notifier).resetPreAuthorization();
 
-      _loadSessions(); // Ricarica la lista per aggiornare la UI
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Parking stopped. Charged €${finalCost.toStringAsFixed(2)}',
-          ),
-        ),
-      );
+      _loadSessions();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -131,28 +159,18 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
 
               final List<ParkingSession> allSessions = snapshot.data ?? [];
 
-              // Filtra la sessione attiva basandosi sull'ID nello stato o sul flag isActive
               final List<ParkingSession> activeSessionList = activeState.active
                   ? allSessions.where((s) => s.id == activeState.sessionId).toList()
                   : [];
-              
-              // Se lo stato locale non è attivo ma ne troviamo una attiva nel DB, mostriamola
-              // (Safety check per casi di desincronizzazione)
+
               if (!activeState.active && activeSessionList.isEmpty) {
-                  final dbActive = allSessions.where((s) => s.isActive).toList();
-                  if (dbActive.isNotEmpty) {
-                      // Nota: Idealmente dovremmo aggiornare lo stato qui, ma evitiamo loop nel build
-                      // Usiamo quella del DB per la visualizzazione
-                      activeSessionList.addAll(dbActive);
-                  }
+                final dbActive = allSessions.where((s) => s.isActive).toList();
+                if (dbActive.isNotEmpty) {
+                  activeSessionList.addAll(dbActive);
+                }
               }
 
-              // Filtra la cronologia (sessioni non attive)
-              final historySessions = allSessions
-                  .where((s) => !s.isActive)
-                  .toList();
-              
-              // Prepara la lista limitata per il widget
+              final historySessions = allSessions.where((s) => !s.isActive).toList();
               final List<ParkingSession> limitedHistory = historySessions.take(3).toList();
 
               return SingleChildScrollView(
@@ -162,17 +180,12 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
                   children: [
                     const PageTitle(title: 'Sessions'),
                     const SizedBox(height: 30),
-                    
                     _buildSectionTitle(context, 'Active Sessions'),
                     const SizedBox(height: 15),
                     _buildActiveSessionsList(activeSessionList),
-                    
                     const SizedBox(height: 30),
-                    
                     _buildSectionTitle(context, 'History'),
                     const SizedBox(height: 15),
-                    
-                    // Usa il widget LimitedHistoryList
                     LimitedHistoryList(
                       sessions: limitedHistory,
                       totalCount: historySessions.length,

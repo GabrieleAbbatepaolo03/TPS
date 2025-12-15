@@ -1,28 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconly/iconly.dart';
 import 'package:user_interface/MAIN%20UTILS/BOTTOM%20NAV%20BAR/bottom_navigation_bar.dart';
 import 'package:user_interface/SCREENS/dashboard/dashboard_screen.dart';
-import 'package:user_interface/SCREENS/home/home_screen.dart'; 
-import 'package:user_interface/SCREENS/sessions/sessions_screen.dart'; 
-import 'package:user_interface/SCREENS/profile/profile_screen.dart'; 
+import 'package:user_interface/SCREENS/home/home_screen.dart';
+import 'package:user_interface/SCREENS/sessions/sessions_screen.dart';
+import 'package:user_interface/SCREENS/profile/profile_screen.dart';
+import 'package:user_interface/main.dart';
 
-class RootPage extends StatefulWidget {
-
+class RootPage extends ConsumerStatefulWidget {
   final int initialIndex;
 
-  const RootPage({
-    super.key,
-    this.initialIndex = 0, 
-  });
-
+  const RootPage({super.key, this.initialIndex = 0});
 
   @override
-  State<RootPage> createState() => _RootPageState();
+  ConsumerState<RootPage> createState() => _RootPageState();
 }
 
-class _RootPageState extends State<RootPage> {
-  int _currentIndex = 0; 
-
+class _RootPageState extends ConsumerState<RootPage> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const SessionsScreen(),
@@ -40,27 +35,26 @@ class _RootPageState extends State<RootPage> {
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(bottomNavIndexProvider.notifier).state = widget.initialIndex;
+    });
   }
 
   void _onItemSelected(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
+    ref.read(bottomNavIndexProvider.notifier).state = index;
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentIndex = ref.watch(bottomNavIndexProvider);
+
     return Scaffold(
       extendBody: true,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: currentIndex, children: _screens),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.only(bottom: 20),
         child: BottomNavBar(
-          currentIndex: _currentIndex,
+          currentIndex: currentIndex,
           onItemSelected: _onItemSelected,
           icons: _navIcons,
         ),

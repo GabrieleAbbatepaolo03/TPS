@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:user_interface/MODELS/vehicle.dart';
 import 'package:user_interface/SERVICES/AUTHETNTICATION%20HELPERS/authenticated_http_client.dart';
 
-//const String _baseUrl = 'http://127.0.0.1:8000/api/vehicles/';
 const String _baseUrl = 'http://10.0.2.2:8000/api/vehicles/';
 
 class VehicleService {

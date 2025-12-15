@@ -66,10 +66,17 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return f"{self.email} ({self.role})"
 
     def get_full_name(self):
-        return f"{self.first_name} {self.last_name}"
+
+        full_name = f"{self.first_name} {self.last_name}".strip()
+        return full_name or self.email
 
     def get_short_name(self):
-        return self.first_name
+        return self.first_name or self.email
+
+    @property
+    def username(self):
+ 
+        return self.email
 
     # Permissions required by Django admin
     def has_perm(self, perm, obj=None):

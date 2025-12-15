@@ -5,6 +5,8 @@ import 'secure_storage_service.dart';
 // Assicurati che questo URL sia corretto per l'emulatore
 const String _authBaseUrl = 'http://10.0.2.2:8000/api/users'; 
 
+
+
 class AuthenticatedHttpClient {
   final SecureStorageService _storageService;
 

@@ -1,6 +1,19 @@
+<<<<<<< HEAD
 django
 djangorestframework
 django-cors-headers
 djangorestframework-simplejwt
 PyJWT
 diango-unfold
+=======
+django>=4.2,<4.3
+djangorestframework>=3.14
+django-cors-headers>=3.13
+djangorestframework-simplejwt>=5.2
+PyJWT>=2.0
+asgiref>=3.7
+psycopg2>=2.9
+django-unfold>=0.29.0
+psycopg2-binary
+
+>>>>>>> 8d6b1f1f135ad3e3a5ee38c79dda934aef235d1f

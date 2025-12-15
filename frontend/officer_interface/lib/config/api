@@ -1,0 +1,26 @@
+import 'package:flutter/foundation.dart';
+
+class Api {
+  static String get host {
+    if (kIsWeb) {
+      // Flutter Web（Edge / Chrome）
+      return 'http://127.0.0.1:8000';
+    }
+
+    // Android Emulator
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8000';
+    }
+
+    // Windows / macOS / iOS
+    return 'http://127.0.0.1:8000';
+  }
+
+  // ===== API roots =====
+  static String get api => '$host/api';
+  static String get users => '$api/users';
+
+  // ===== Auth =====
+  static String get token => '$users/token/';
+  static String get refresh => '$users/token/refresh/';
+}
