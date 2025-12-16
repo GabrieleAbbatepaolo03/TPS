@@ -84,7 +84,13 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
         );
 
         if (chosen == true) {
-          await ref.read(paymentProvider.notifier).charge(extra);
+          // await ref.read(paymentProvider.notifier).charge(extra);
+          await ref.read(paymentProvider.notifier).charge
+          (
+            extra,
+            reason: 'Extra payment',
+          );
+
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

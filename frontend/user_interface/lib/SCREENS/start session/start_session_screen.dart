@@ -247,7 +247,13 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
     setState(() => _isLoading = true);
 
     final paymentNotifier = ref.read(paymentProvider.notifier);
-    await paymentNotifier.charge(_prepaidCost);
+    // await paymentNotifier.charge(_prepaidCost);
+    await paymentNotifier.charge
+    (
+      _prepaidCost,
+      reason: 'Start Session',
+    );
+
 
     final session = await _sessionService.startSession(
       vehicleId: _selectedVehicle!.id,

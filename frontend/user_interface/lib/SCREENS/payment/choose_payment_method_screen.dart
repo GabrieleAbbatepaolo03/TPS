@@ -6,19 +6,8 @@ import 'package:iconly/iconly.dart';
 import 'package:user_interface/STATE/payment_state.dart';
 import 'package:user_interface/SCREENS/dashboard/dashboard_pages/payments_method_page/payment_methods_page.dart';
 
-/// A dedicated page for selecting a payment method.
-///
-/// Used in two scenarios:
-/// - Start Session (first time): set a *default* payment method.
-/// - End Session (extra > 0): pick/confirm a method before paying the remaining amount.
-///
-/// NOTE: This page does NOT integrate real payments. It only stores the selected
-/// method type in [paymentProvider] and lets the caller trigger the simulated charge.
 class ChoosePaymentMethodScreen extends ConsumerStatefulWidget {
-  /// If provided, the page will show an amount and the bottom button will show "Pay €X.XX".
   final double? amount;
-
-  /// Optional custom title.
   final String? title;
 
   const ChoosePaymentMethodScreen({super.key, this.amount, this.title});
@@ -43,16 +32,21 @@ class _ChoosePaymentMethodScreenState
     setState(() => _selectedType = type);
   }
 
-  Future<void> _openManageCards() async {
-    await Navigator.of(context).push(
+  /// ✅ Now returns whether something changed (e.g., user set a default card)
+  Future<bool> _openManageCards() async {
+    final result = await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const PaymentMethodsPage()),
     );
-    if (mounted) setState(() {});
+
+    if (!mounted) return false;
+
+    // Force rebuild so subtitle updates
+    setState(() {});
+
+    return result == true;
   }
 
   Future<void> _confirm() async {
-    final pay = ref.read(paymentProvider);
-
     if (_selectedType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a payment method.')),
@@ -60,13 +54,28 @@ class _ChoosePaymentMethodScreenState
       return;
     }
 
+    // Always read latest state
+    var pay = ref.read(paymentProvider);
+
+    // ✅ If card selected but no default card saved, guide user to Manage cards first
     if (_selectedType == 'card' && !pay.hasMethod) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No card found. Please add a card first.'),
-        ),
-      );
-      return;
+      // Auto-open Manage cards to let user choose/set default card
+      await _openManageCards();
+
+      // Re-check after returning
+      pay = ref.read(paymentProvider);
+
+      if (!pay.hasMethod) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No card found. Please add a card first.'),
+          ),
+        );
+        return;
+      }
+
+      // Optional: auto-select card after user sets default
+      if (mounted) setState(() => _selectedType = 'card');
     }
 
     ref.read(paymentProvider.notifier).setDefaultMethodType(_selectedType!);

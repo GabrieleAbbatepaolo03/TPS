@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconly/iconly.dart';
+
 import 'package:user_interface/MAIN%20UTILS/app_theme.dart';
 import 'package:user_interface/MODELS/payment_card.dart';
 import 'package:user_interface/SCREENS/dashboard/dashboard_pages/payments_method_page/utils/add_payment_card_dialog.dart';
 import 'package:user_interface/SCREENS/dashboard/dashboard_pages/payments_method_page/utils/card_tile.dart';
 import 'package:user_interface/SERVICES/payment_service.dart';
+import 'package:user_interface/STATE/payment_state.dart';
 
-
-class PaymentMethodsPage extends StatefulWidget {
+class PaymentMethodsPage extends ConsumerStatefulWidget {
   const PaymentMethodsPage({super.key});
 
   @override
-  State<PaymentMethodsPage> createState() => _PaymentMethodsPageState();
+  ConsumerState<PaymentMethodsPage> createState() => _PaymentMethodsPageState();
 }
 
-class _PaymentMethodsPageState extends State<PaymentMethodsPage> {
+class _PaymentMethodsPageState extends ConsumerState<PaymentMethodsPage> {
   final PaymentService _paymentService = PaymentService();
   late Future<List<PaymentCard>> _cardsFuture;
 
@@ -31,16 +33,27 @@ class _PaymentMethodsPageState extends State<PaymentMethodsPage> {
     });
   }
 
-  void _showAddCardDialog() async {
-    // Chiamata al nuovo dialogo implementato
+  Future<void> _showAddCardDialog() async {
     final newCard = await showAddPaymentCardDialog(context);
-
     if (newCard != null && mounted) {
       _loadCards();
     }
   }
 
-  void _handleDeleteCard(PaymentCard card) async {
+  void _setAsDefaultCard(PaymentCard card) {
+    // Save last4 locally for the whole app (ChoosePaymentMethod will read this)
+    ref.read(paymentProvider.notifier).setPaymentMethod(card.cardNumber);
+    ref.read(paymentProvider.notifier).setDefaultMethodType('card');
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Default card set: •••• ${card.cardNumber}')),
+    );
+
+    // Return true so previous page can refresh
+    Navigator.pop(context, true);
+  }
+
+  Future<void> _handleDeleteCard(PaymentCard card) async {
     final bool? didConfirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -63,59 +76,87 @@ class _PaymentMethodsPageState extends State<PaymentMethodsPage> {
       ),
     );
 
-    if (didConfirm == true) {
-      try {
-        await _paymentService.deleteCard(card.id);
-        _loadCards(); // Ricarica la lista dopo l'eliminazione
-        if(mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Card ****${card.cardNumber} deleted successfully.')),
-          );
+    if (didConfirm != true) return;
+
+    try {
+      await _paymentService.deleteCard(card.id);
+
+      // If deleted card was default, clear local default
+      final pay = ref.read(paymentProvider);
+      if (pay.method == card.cardNumber) {
+        ref.read(paymentProvider.notifier).save('');
+        if (pay.defaultMethodType == 'card') {
+          ref.read(paymentProvider.notifier).clearDefaultMethodType();
         }
-      } catch (e) {
-        if(mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error deleting card: ${e.toString()}')),
-          );
-        }
+      }
+
+      _loadCards();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Card ****${card.cardNumber} deleted successfully.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting card: ${e.toString()}')),
+        );
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Usiamo MediaQuery per determinare l'altezza dello schermo, anche se AppSizes è preferito.
-    // Assumo che AppSizes.screenHeight sia la stessa cosa di MediaQuery.of(context).size.height
-    final screenHeight = MediaQuery.of(context).size.height; 
+    final pay = ref.watch(paymentProvider);
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
       body: Container(
-        height: screenHeight, 
+        height: screenHeight,
         decoration: AppTheme.backgroundGradientDecoration,
         child: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppBar( // Usiamo AppBar per il titolo
+              AppBar(
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 title: Text(
-                  'Payment Methods', 
-                  style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)
+                  'Payment Methods',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 iconTheme: const IconThemeData(color: Colors.white),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: _buildAddCardButton(),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(IconlyLight.plus, color: Colors.white, size: 20),
+                    label: Text(
+                      'Add New Card',
+                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 16),
+                    ),
+                    onPressed: _showAddCardDialog,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(color: Colors.white54, width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: _buildCardsList(),
+                  child: _buildCardsList(pay),
                 ),
               ),
             ],
@@ -125,26 +166,7 @@ class _PaymentMethodsPageState extends State<PaymentMethodsPage> {
     );
   }
 
-  Widget _buildAddCardButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        icon: const Icon(IconlyLight.plus, color: Colors.white, size: 20),
-        label: Text(
-          'Add New Card',
-          style: GoogleFonts.poppins(color: Colors.white, fontSize: 16),
-        ),
-        onPressed: _showAddCardDialog,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          side: const BorderSide(color: Colors.white54, width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCardsList() {
+  Widget _buildCardsList(PaymentState pay) {
     return FutureBuilder<List<PaymentCard>>(
       future: _cardsFuture,
       builder: (context, snapshot) {
@@ -156,6 +178,7 @@ class _PaymentMethodsPageState extends State<PaymentMethodsPage> {
             ),
           );
         }
+
         if (snapshot.hasError) {
           return Center(
             child: Text(
@@ -164,6 +187,7 @@ class _PaymentMethodsPageState extends State<PaymentMethodsPage> {
             ),
           );
         }
+
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return Center(
             child: Padding(
@@ -175,16 +199,18 @@ class _PaymentMethodsPageState extends State<PaymentMethodsPage> {
             ),
           );
         }
-        
+
         final cards = snapshot.data!;
-        
         return ListView.builder(
           itemCount: cards.length,
           itemBuilder: (context, index) {
             final card = cards[index];
-            
+            final isDefault = pay.method == card.cardNumber;
+
             return CardTile(
               card: card,
+              isDefault: isDefault,
+              onSelect: () => _setAsDefaultCard(card),
               onDelete: () => _handleDeleteCard(card),
             );
           },

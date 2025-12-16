@@ -6,22 +6,46 @@ class OneOffTicket {
   bool get isActive => expiresAt.isAfter(DateTime.now());
 }
 
-/// Payment state for the user app.
-///
-/// IMPORTANT: we keep the existing behaviour intact (card last4, one-off ticket,
-/// pre-authorization, simulated charge). We only add a "default payment method"
-/// concept used by the parking Start/Stop workflow.
+/// Local simulated payment record (no sensitive info stored)
+class PaymentTransaction {
+  final String id;
+  final DateTime createdAt;
+  final double amount;
+  final String currency; // e.g. EUR
+  final String methodType; // card / apple_pay / google_pay
+  final String methodLabel; // e.g. "Card •••• 1111"
+  final String reason; // "Start Session" / "Extra payment"
+
+  /// Previously: "SIMULATED"
+  /// Now: we use it as a display label (e.g., Parking Lot name)
+  final String status;
+
+  const PaymentTransaction({
+    required this.id,
+    required this.createdAt,
+    required this.amount,
+    required this.currency,
+    required this.methodType,
+    required this.methodLabel,
+    required this.reason,
+    required this.status,
+  });
+}
+
 class PaymentState {
-  /// Legacy field: stores only the last 4 digits (e.g., "1234").
+  /// Legacy: stores only last 4 digits
   final String? method;
 
-  /// New: default payment method type for the parking workflow.
-  /// Values: 'card' | 'apple_pay' | 'google_pay'
+  /// Default method for parking workflow
+  /// 'card' | 'apple_pay' | 'google_pay'
   final String? defaultMethodType;
 
   final OneOffTicket? activeTicket;
   final double? lastCharge;
   final bool preAuthorized;
+
+  /// NEW: simulated payment history
+  final List<PaymentTransaction> history;
 
   const PaymentState({
     this.method,
@@ -29,6 +53,7 @@ class PaymentState {
     this.activeTicket,
     this.lastCharge,
     this.preAuthorized = false,
+    this.history = const [],
   });
 
   bool get hasMethod => method != null && method!.isNotEmpty;
@@ -36,7 +61,6 @@ class PaymentState {
   bool get hasDefaultMethod =>
       defaultMethodType != null && defaultMethodType!.isNotEmpty;
 
-  /// Label used in confirmation dialogs.
   String get defaultMethodLabel {
     switch (defaultMethodType) {
       case 'apple_pay':
@@ -56,6 +80,7 @@ class PaymentState {
     OneOffTicket? activeTicket,
     double? lastCharge,
     bool? preAuthorized,
+    List<PaymentTransaction>? history,
     bool clearDefaultMethodType = false,
   }) {
     return PaymentState(
@@ -66,6 +91,7 @@ class PaymentState {
       activeTicket: activeTicket ?? this.activeTicket,
       lastCharge: lastCharge ?? this.lastCharge,
       preAuthorized: preAuthorized ?? this.preAuthorized,
+      history: history ?? this.history,
     );
   }
 }
@@ -77,20 +103,13 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
     state = state.copyWith(method: method);
   }
 
-  /// Takes any card number string and stores only the last 4 digits.
   void setPaymentMethod(String number) {
-    final last4 = number
-        .replaceAll(' ', '')
-        .split('')
-        .reversed
-        .take(4)
-        .toList()
-        .reversed
-        .join();
+    final cleaned = number.replaceAll(' ', '');
+    final last4 =
+        cleaned.length >= 4 ? cleaned.substring(cleaned.length - 4) : cleaned;
     state = state.copyWith(method: last4);
   }
 
-  /// New: set default method type for parking flow.
   void setDefaultMethodType(String type) {
     state = state.copyWith(defaultMethodType: type);
   }
@@ -104,9 +123,38 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
     state = state.copyWith(activeTicket: OneOffTicket(expiresAt: expiresAt));
   }
 
-  /// Simulated charge. (No real payment integration.)
-  Future<void> charge(double amount) async {
-    state = state.copyWith(lastCharge: amount);
+  /// Simulated charge + save local history
+  ///
+  /// NEW: [placeLabel] can be used to show Parking Lot name in Payment History,
+  /// replacing the old hardcoded "SIMULATED" label.
+  Future<void> charge(
+    double amount, {
+    String currency = 'EUR',
+    String reason = 'Payment',
+    String? placeLabel, // ✅ NEW
+  }) async {
+    final now = DateTime.now();
+
+    final methodType =
+        state.defaultMethodType ?? (state.hasMethod ? 'card' : 'card');
+    final methodLabel = state.defaultMethodLabel;
+
+    final tx = PaymentTransaction(
+      id: '${now.microsecondsSinceEpoch}',
+      createdAt: now,
+      amount: amount,
+      currency: currency,
+      methodType: methodType,
+      methodLabel: methodLabel,
+      reason: reason,
+      status: (placeLabel ?? '').trim(), // ✅ Now shows parking lot name
+    );
+
+    state = state.copyWith(
+      lastCharge: amount,
+      history: [tx, ...state.history], // newest first
+    );
+
     await Future.delayed(const Duration(milliseconds: 300));
   }
 
@@ -116,6 +164,10 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
 
   void resetPreAuthorization() {
     state = state.copyWith(preAuthorized: false);
+  }
+
+  void clearHistory() {
+    state = state.copyWith(history: []);
   }
 }
 
