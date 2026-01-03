@@ -14,7 +14,7 @@ from pathlib import Path
 from datetime import timedelta
 from django.templatetags.static import static
 from django.urls import reverse_lazy
-
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -28,9 +28,18 @@ SECRET_KEY = 'django-insecure-0ipfdb^onls00@#b_lu-b%zyvlhv)3aj)1*m@fko^=#iwm7uk^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', '10.0.2.2', 'localhost', '0.0.0.0']
+# ALLOWED_HOSTS = ['127.0.0.1', '10.0.2.2', 'localhost', '0.0.0.0']
 
-
+# Deployment settings
+ALLOWED_HOSTS = [
+    '127.0.0.1', 
+    '10.0.2.2',
+    'localhost',
+    '0.0.0.0',
+    '.appspot.com',
+    'tps-parking-system.appspot.com',
+    '*',
+]
 # Application definition
 
 INSTALLED_APPS = [
@@ -54,12 +63,16 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    # Deployment requirement
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    #
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
 ]
 
 ROOT_URLCONF = 'tps_backend.urls'
@@ -81,30 +94,42 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'tps_backend.wsgi.application'
 
+# Database configuration
+# Please choose one of the following configurations:
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
+# ===== Neon Cloud Database  https://neon.com/ =====
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'tps_db',        # database name in pgAdmin 
-        'USER': 'postgres',      # postgres
-        'PASSWORD': 'Aa314159',  # password in postgresql
-        'HOST': 'localhost',
+        'NAME': 'neondb',
+        'USER': 'neondb_owner',
+        'PASSWORD': 'npg_1eQzFi3XoMJG',
+        'HOST': 'ep-empty-sea-agiftapm-pooler.c-2.eu-central-1.aws.neon.tech',
         'PORT': '5432',
-    },
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
+    }
 }
 
 
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
+# ===== Local PostgreSQL Database =====
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'tps_db',
+#         'USER': 'postgres',
+#         'PASSWORD': 'Aa314159',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
+
 
 AUTH_PASSWORD_VALIDATORS = []
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
+
 
 LANGUAGE_CODE = 'en-us'
 
@@ -115,13 +140,11 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
+
 
 STATIC_URL = 'static/'
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
