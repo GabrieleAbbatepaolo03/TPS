@@ -21,11 +21,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def get_token(cls, user):
         token = super().get_token(user)
         token['role'] = user.role 
+        token['allowed_cities'] = user.allowed_cities if user.allowed_cities else []
         return token
 
     def validate(self, attrs):
         data = super().validate(attrs)
         data['role'] = self.user.role 
+        data['allowed_cities'] = self.user.allowed_cities if self.user.allowed_cities else []
         return data
 
 class CustomTokenObtainPairView(TokenObtainPairView):

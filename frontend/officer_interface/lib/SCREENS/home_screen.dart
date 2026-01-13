@@ -4,8 +4,9 @@ import 'package:intl/intl.dart';
 import 'package:officer_interface/MODELS/parking_session.dart';
 
 import 'package:officer_interface/services/controller_service.dart';
-import 'package:officer_interface/services/auth_service.dart'; 
+import 'package:officer_interface/services/auth_service.dart';
 import 'package:officer_interface/SCREENS/login_screen.dart';
+import 'package:officer_interface/services/user_session.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,11 +39,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final session = await ControllerService.searchActiveSessionByPlate(plate);
-      
+
       setState(() {
         _activeSession = session;
         if (session == null) {
-          _message = "Vehicle with plate '$plate' has NO active parking session.";
+          _message =
+              "Vehicle with plate '$plate' has NO active parking session.";
         }
       });
     } catch (e) {
@@ -55,11 +57,10 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
-  
+
   void _handleLogout() async {
     await AuthService.logout();
     if (mounted) {
-      // Navigate to LoginScreen and remove all previous routes
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
@@ -69,11 +70,51 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final session = UserSession();
+
+    String jurisdictionText;
+    if (session.isSuperAdmin) {
+      jurisdictionText = "ALL CITIES (Global Access)";
+    } else {
+      jurisdictionText = session.allowedCities.isEmpty
+          ? "No Jurisdiction Assigned"
+          : session.allowedCities.join(", ");
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          "Controller Dashboard",
-          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Controller Dashboard",
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Row(
+              children: [
+                const Icon(
+                  Icons.location_on,
+                  color: Colors.greenAccent,
+                  size: 14,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  jurisdictionText.toUpperCase(),
+                  style: GoogleFonts.poppins(
+                    color: Colors.greenAccent,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -81,7 +122,10 @@ class _HomeScreenState extends State<HomeScreen> {
           TextButton.icon(
             onPressed: _handleLogout,
             icon: const Icon(Icons.logout, color: Colors.redAccent),
-            label: Text("Logout", style: GoogleFonts.poppins(color: Colors.white)),
+            label: Text(
+              "Logout",
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
           ),
           const SizedBox(width: 16),
         ],
@@ -94,8 +138,8 @@ class _HomeScreenState extends State<HomeScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color.fromARGB(255, 2, 11, 60), 
-              Color.fromARGB(255, 52, 12, 108), 
+              Color.fromARGB(255, 2, 11, 60),
+              Color.fromARGB(255, 52, 12, 108),
             ],
           ),
         ),
@@ -109,40 +153,53 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(
                     "Session Verification",
-                    style: GoogleFonts.poppins(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: GoogleFonts.poppins(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                   Text(
                     "Enter the license plate to check for an active parking session.",
-                    style: GoogleFonts.poppins(fontSize: 16, color: Colors.white70),
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      color: Colors.white70,
+                    ),
                   ),
                   const SizedBox(height: 30),
 
-                  // Search Bar and Button
                   Row(
                     children: [
-                      Expanded(
-                        child: _buildPlateTextField(),
-                      ),
+                      Expanded(child: _buildPlateTextField()),
                       const SizedBox(width: 16),
                       ElevatedButton.icon(
                         onPressed: _isLoading ? null : _searchPlate,
-                        icon: _isLoading ? const SizedBox.shrink() : const Icon(Icons.search, color: Colors.black),
+                        icon: _isLoading
+                            ? const SizedBox.shrink()
+                            : const Icon(Icons.search, color: Colors.black),
                         label: Text(
                           _isLoading ? "Searching..." : "Check Plate",
-                          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.greenAccent,
                           foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 20,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 40),
 
-                  // Results Area
                   _buildResultsArea(),
                 ],
               ),
@@ -152,23 +209,34 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  
+
   Widget _buildPlateTextField() {
     return TextField(
       controller: _plateController,
       textCapitalization: TextCapitalization.characters,
-      style: GoogleFonts.poppins(color: Colors.white, fontSize: 20, letterSpacing: 2),
+      style: GoogleFonts.poppins(
+        color: Colors.white,
+        fontSize: 20,
+        letterSpacing: 2,
+      ),
       cursorColor: Colors.white,
       decoration: InputDecoration(
         hintText: "E.g., AB123CD",
-        hintStyle: GoogleFonts.poppins(color: Colors.white54, fontSize: 20, letterSpacing: 2),
+        hintStyle: GoogleFonts.poppins(
+          color: Colors.white54,
+          fontSize: 20,
+          letterSpacing: 2,
+        ),
         filled: true,
         fillColor: Colors.white.withOpacity(0.1),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 20,
+        ),
       ),
       onSubmitted: (_) => _searchPlate(),
     );
@@ -176,9 +244,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildResultsArea() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Colors.white));
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
     }
-    
+
     if (_activeSession != null) {
       return _buildActiveSessionCard(_activeSession!);
     }
@@ -189,9 +259,13 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: isError ? Colors.red.withOpacity(0.1) : Colors.white.withOpacity(0.1),
+            color: isError
+                ? Colors.red.withOpacity(0.1)
+                : Colors.white.withOpacity(0.1),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: isError ? Colors.redAccent : Colors.greenAccent),
+            border: Border.all(
+              color: isError ? Colors.redAccent : Colors.greenAccent,
+            ),
           ),
           child: Text(
             _message!,
@@ -208,18 +282,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return const SizedBox.shrink();
   }
-  
+
   Widget _buildActiveSessionCard(ParkingSession session) {
     final startTime = session.startTime.toLocal();
     final duration = DateTime.now().difference(startTime);
     final formatter = DateFormat('MMM d, yyyy HH:mm');
     final durationHours = duration.inHours;
     final durationMinutes = duration.inMinutes % 60;
-    
-    final cost = session.totalCost != null 
-        ? NumberFormat.currency(locale: 'it_IT', symbol: '€').format(session.totalCost) 
+
+    final cost = session.totalCost != null
+        ? NumberFormat.currency(
+            locale: 'it_IT',
+            symbol: '€',
+          ).format(session.totalCost)
         : 'N/A';
-    
+
     return Container(
       padding: const EdgeInsets.all(30),
       decoration: BoxDecoration(
@@ -242,42 +319,47 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Text(
                 "ACTIVE SESSION",
-                style: GoogleFonts.poppins(color: Colors.greenAccent, fontSize: 24, fontWeight: FontWeight.bold),
+                style: GoogleFonts.poppins(
+                  color: Colors.greenAccent,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              const Icon(Icons.check_circle, color: Colors.greenAccent, size: 30),
+              const Icon(
+                Icons.check_circle,
+                color: Colors.greenAccent,
+                size: 30,
+              ),
             ],
           ),
           const Divider(color: Colors.white38, height: 30),
-          
-          // FIXED: Show only Plate, not Name
-          _buildInfoRow("License Plate", session.vehiclePlate), 
-          _buildInfoRow("Parking Lot", session.parkingLot?.name ?? "Unknown Parking"),
-          _buildInfoRow("Parking Address", session.parkingLot?.address ?? "N/A"),
+
+          _buildInfoRow("License Plate", session.vehiclePlate),
+          _buildInfoRow(
+            "Parking Lot",
+            session.parkingLot?.name ?? "Unknown Parking",
+          ),
+          _buildInfoRow("City", session.parkingLot?.city ?? "N/A"),
           _buildInfoRow("Session ID", "#${session.id}"),
-          
+
           const Divider(color: Colors.white38, height: 30),
 
-          // Duration and Cost
           _buildInfoRow(
-            "Start Time", 
-            formatter.format(startTime), 
-            isHighlight: true
+            "Start Time",
+            formatter.format(startTime),
+            isHighlight: true,
           ),
           _buildInfoRow(
-            "Duration", 
+            "Duration",
             "${durationHours}h ${durationMinutes}m",
-            isHighlight: true
+            isHighlight: true,
           ),
-          _buildInfoRow(
-            "Estimated Cost (Base Rate)", 
-            cost, 
-            isHighlight: true
-          ),
+          _buildInfoRow("Estimated Cost", cost, isHighlight: true),
         ],
       ),
     );
   }
-  
+
   Widget _buildInfoRow(String label, String value, {bool isHighlight = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -295,9 +377,9 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Text(
               value,
               style: GoogleFonts.poppins(
-                color: isHighlight ? Colors.white : Colors.white, 
-                fontSize: 16, 
-                fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal
+                color: isHighlight ? Colors.white : Colors.white,
+                fontSize: 16,
+                fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ),

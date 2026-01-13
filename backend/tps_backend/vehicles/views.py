@@ -56,7 +56,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
     def set_favorite(self, request, pk=None):
         vehicle = self.get_object()
         
-        # Tenta decodifica manuale se necessario (per sicurezza)
+        # Tenta decodifica manuale se necessario
         data = request.data
         if isinstance(data, str):
              try:
@@ -160,6 +160,19 @@ class ParkingSessionViewSet(viewsets.ModelViewSet):
         try:
             session = ParkingSession.objects.get(vehicle=vehicle, is_active=True)
             
+            user = request.user
+            if not user.is_superuser:
+                allowed_cities = getattr(user, 'allowed_cities', [])
+
+                if allowed_cities and isinstance(allowed_cities, list):
+
+                    if session.parking_lot and session.parking_lot.city not in allowed_cities:
+
+                        return Response(
+                            {'status': 'No Active Session Found in your jurisdiction'}, 
+                            status=status.HTTP_404_NOT_FOUND
+                        )
+
             now = timezone.now()
 
             # Controllo Scadenza
