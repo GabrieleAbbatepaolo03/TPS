@@ -6,8 +6,8 @@ from django.views.generic import RedirectView
 from rest_framework.routers import DefaultRouter
 
 from parkings.views import ParkingViewSet, SpotViewSet
-from vehicles.views import VehicleViewSet, ParkingSessionViewSet
-from payments.views import PaymentCardViewSet # Devi assicurarti che questo sia corretto!
+from vehicles.views import VehicleViewSet, ParkingSessionViewSet, PlateOCRView
+from payments.views import PaymentCardViewSet  
 
 admin.site.site_header = 'TPS Management System'
 admin.site.site_title = 'TPS Admin Portal'
@@ -22,9 +22,14 @@ router.register(r'sessions', ParkingSessionViewSet, basename='session')
 urlpatterns = [
     path('', RedirectView.as_view(url='/admin/', permanent=False)),
     path('admin/', admin.site.urls),
+
     path('api/users/', include('users.urls')),
+
+    #Officer photo turn type
+    path('api/plate-ocr/', PlateOCRView.as_view()),
+
     path('api/', include(router.urls)),
-    path('api/payments/', include('payments.urls')), 
+    path('api/payments/', include('payments.urls')),
 ]
 
 if settings.DEBUG:

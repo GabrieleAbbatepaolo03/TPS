@@ -1,12 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+
+import 'package:officer_interface/config/api';
 import 'package:officer_interface/services/authentication%20helpers/secure_storage_service.dart';
 import 'package:officer_interface/services/user_session.dart';
 
 class AuthService {
-  static const String baseUrl = "http://127.0.0.1:8000/api/users";
-  // static const String baseUrl = "http://10.0.2.2:8000/api/users";
-
   static final SecureStorageService _storageService = SecureStorageService();
 
   static Future<bool> loginUser(
@@ -14,7 +13,8 @@ class AuthService {
     String password, {
     String requiredRole = 'any',
   }) async {
-    final url = Uri.parse('$baseUrl/token/');
+    //Api.token，Android: 10.0.2.2
+    final url = Uri.parse(Api.token);
 
     try {
       final response = await http.post(

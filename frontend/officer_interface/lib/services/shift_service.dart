@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:officer_interface/config/api';
 import 'package:officer_interface/services/authentication%20helpers/authenticated%20_http_client.dart';
 
 class ShiftInfo {
@@ -21,7 +22,8 @@ class ShiftInfo {
 class ShiftService {
   static final AuthenticatedHttpClient _client = AuthenticatedHttpClient();
 
-  static const String _apiRoot = 'http://127.0.0.1:8000/api';
+  // 
+  static String get _apiRoot => Api.api;
 
   /// GET /api/users/shifts/current/
   static Future<ShiftInfo?> getCurrentShift() async {
@@ -29,7 +31,9 @@ class ShiftService {
     final res = await _client.get(url);
 
     if (res.statusCode != 200) {
-      throw Exception("Failed to get current shift: ${res.statusCode}");
+      throw Exception(
+        "Failed to get current shift: ${res.statusCode} ${res.body}",
+      );
     }
 
     final data = jsonDecode(res.body);
@@ -46,7 +50,9 @@ class ShiftService {
     final res = await _client.post(url);
 
     if (res.statusCode != 200 && res.statusCode != 201) {
-      throw Exception("Failed to start shift: ${res.statusCode}");
+      throw Exception(
+        "Failed to start shift: ${res.statusCode} ${res.body}",
+      );
     }
 
     return ShiftInfo.fromJson(jsonDecode(res.body));
@@ -59,7 +65,9 @@ class ShiftService {
     final res = await _client.post(url);
 
     if (res.statusCode != 200) {
-      throw Exception("Failed to end shift: ${res.statusCode}");
+      throw Exception(
+        "Failed to end shift: ${res.statusCode} ${res.body}",
+      );
     }
   }
 }
