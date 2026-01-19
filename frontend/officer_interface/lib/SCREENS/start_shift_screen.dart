@@ -103,7 +103,7 @@ class _StartShiftScreenState extends State<StartShiftScreen> {
                   ElevatedButton(
                     onPressed: _loading ? null : _startShift,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
+                      backgroundColor: Colors.greenAccent,
                       foregroundColor: Colors.black,
                       minimumSize: const Size(double.infinity, 52),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),

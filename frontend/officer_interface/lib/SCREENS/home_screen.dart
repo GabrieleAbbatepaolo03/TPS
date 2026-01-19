@@ -220,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
           if (hasShift)
             TextButton.icon(
               onPressed: _handleEndShift,
-              icon: const Icon(Icons.stop_circle, color: Colors.orangeAccent),
+              icon: const Icon(Icons.stop_circle, color: Colors.redAccent),
               label: Text(
                 "End Shift",
                 style: GoogleFonts.poppins(color: Colors.white),
