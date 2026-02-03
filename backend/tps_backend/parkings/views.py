@@ -4,11 +4,7 @@ from rest_framework.response import Response
 from django.db.models import Count, Q, OuterRef, Subquery, IntegerField, DecimalField, Sum, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
-<<<<<<< HEAD
 from decimal import Decimal
-=======
-from decimal import Decimal 
->>>>>>> 4353206fcf0d41e72df53018842954601c19e308
 
 from .models import Parking, Spot
 from .serializers import ParkingSerializer, SpotSerializer

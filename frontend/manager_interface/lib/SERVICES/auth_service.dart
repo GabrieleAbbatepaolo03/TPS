@@ -18,10 +18,7 @@ class AuthService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
-<<<<<<< HEAD
       // Backend now validates role - if we get here, user is a manager
-=======
->>>>>>> 4353206fcf0d41e72df53018842954601c19e308
       final accessToken = data['access'];
       final refreshToken = data['refresh'];
       final role = data['role'] ?? 'user';
@@ -33,13 +30,6 @@ class AuthService {
       );
       UserSession().setSession(role: role, allowedCities: allowedCities);
 
-<<<<<<< HEAD
-=======
-      if (data.containsKey('role') && data['role'] == 'manager') {
-        return true;
-      }
-
->>>>>>> 4353206fcf0d41e72df53018842954601c19e308
       return true;
     } else {
       // Login failed - wrong credentials or not a manager

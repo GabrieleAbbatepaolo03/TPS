@@ -92,7 +92,6 @@ Future<Parking?> showAddParkingDialog(
               name: nameController.text,
               city: finalCity,
               address: addressController.text,
-<<<<<<< HEAD
               ratePerHour: 2.5,
               totalSpots: int.parse(totalSpotsController.text), 
               occupiedSpots: 0,
@@ -108,26 +107,6 @@ Future<Parking?> showAddParkingDialog(
             try {
               final savedParking = await ParkingService.saveParking(newParkingData);
               
-=======
-              totalSpots: int.parse(totalSpotsController.text),
-              occupiedSpots: 0,
-              // NUOVI CAMPI INIZIALIZZATI
-              todayEntries: 0,
-              todayRevenue: 0.0,
-
-              latitude: double.tryParse(latController.text),
-              longitude: double.tryParse(lngController.text),
-              tariffConfigJson: Parking.defaultTariffConfig.toJson(),
-            );
-
-            try {
-              // 1. Salva il parcheggio
-              final savedParking = await ParkingService.saveParking(
-                newParkingData,
-              );
-
-              // 2. Crea i posti (Logica originale mantenuta)
->>>>>>> 4353206fcf0d41e72df53018842954601c19e308
               final int spotsToCreate = int.parse(totalSpotsController.text);
 
               if (spotsToCreate > 0) {
@@ -143,16 +122,10 @@ Future<Parking?> showAddParkingDialog(
                 name: savedParking.name,
                 city: savedParking.city,
                 address: savedParking.address,
-<<<<<<< HEAD
                 ratePerHour: savedParking.ratePerHour,
                 totalSpots: spotsToCreate, 
                 occupiedSpots: 0,
                 todayEntries: 0, 
-=======
-                totalSpots: spotsToCreate,
-                occupiedSpots: 0,
-                todayEntries: 0,
->>>>>>> 4353206fcf0d41e72df53018842954601c19e308
                 todayRevenue: 0.0,
                 latitude: savedParking.latitude,
                 longitude: savedParking.longitude,
@@ -301,13 +274,8 @@ Future<Parking?> showAddParkingDialog(
 
           return Dialog(
             backgroundColor: Colors.transparent,
-<<<<<<< HEAD
             child: ConstrainedBox( 
               constraints: const BoxConstraints(maxWidth: 700),
-=======
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 600),
->>>>>>> 4353206fcf0d41e72df53018842954601c19e308
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -478,7 +446,6 @@ Future<Parking?> showAddParkingDialog(
                           isEnabled: !isLoading,
                         ),
                         const SizedBox(height: 16),
-<<<<<<< HEAD
                         _buildStyledTextField(totalSpotsController, 'Total Spots', true, isEnabled: !isLoading),
                         const SizedBox(height: 16),
                         Row(
@@ -486,36 +453,6 @@ Future<Parking?> showAddParkingDialog(
                             Expanded(child: _buildStyledTextField(latController, 'Center Latitude', true, isEnabled: !isLoading)),
                             const SizedBox(width: 10),
                             Expanded(child: _buildStyledTextField(lngController, 'Center Longitude', true, isEnabled: !isLoading)),
-=======
-
-                        _buildStyledTextField(
-                          totalSpotsController,
-                          'Total Spots',
-                          true,
-                          isEnabled: !isLoading,
-                        ),
-
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildStyledTextField(
-                                latController,
-                                'Latitude',
-                                true,
-                                isEnabled: !isLoading,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: _buildStyledTextField(
-                                lngController,
-                                'Longitude',
-                                true,
-                                isEnabled: !isLoading,
-                              ),
-                            ),
->>>>>>> 4353206fcf0d41e72df53018842954601c19e308
                           ],
                         ),
                         
@@ -615,16 +552,7 @@ Future<Parking?> showAddParkingDialog(
   );
 }
 
-<<<<<<< HEAD
 Widget _buildStyledTextField(TextEditingController controller, String label, bool isNumber, {bool isEnabled = true}) {
-=======
-Widget _buildStyledTextField(
-  TextEditingController controller,
-  String label,
-  bool isNumber, {
-  bool isEnabled = true,
-}) {
->>>>>>> 4353206fcf0d41e72df53018842954601c19e308
   return TextFormField(
     controller: controller,
     enabled: isEnabled,
