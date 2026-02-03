@@ -5,9 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:officer_interface/MODELS/parking_session.dart';
 import 'package:officer_interface/services/controller_service.dart';
-import 'package:officer_interface/services/auth_service.dart';
-import 'package:officer_interface/SCREENS/login_screen.dart';
-import 'package:officer_interface/services/user_session.dart';
 
 // ✅ Shift
 import 'package:officer_interface/services/shift_service.dart';
@@ -240,13 +237,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final session = UserSession();
-
-    final jurisdictionText = session.isSuperAdmin
-        ? "ALL CITIES"
-        : (session.allowedCities.isEmpty
-            ? "No Jurisdiction"
-            : session.allowedCities.join(", "));
 
     final hasShift = widget.shiftStartTime != null && widget.shiftId != null;
 

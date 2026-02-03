@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:user_interface/MAIN%20UTILS/page_transition.dart';
 import 'package:intl/intl.dart';
 
-import 'package:user_interface/MODELS/parking_lot.dart';
+import 'package:user_interface/MODELS/parking.dart';
 import 'package:user_interface/MODELS/vehicle.dart';
 import 'package:user_interface/SCREENS/root_screen.dart';
 import 'package:user_interface/SCREENS/start%20session/parking_cost_calculator.dart';
@@ -22,7 +22,7 @@ import 'package:user_interface/SCREENS/payment/choose_payment_method_screen.dart
 enum StartSessionConfirmAction { cancel, changeMethod, confirm }
 
 class StartSessionScreen extends ConsumerStatefulWidget {
-  final ParkingLot parkingLot;
+  final Parking parkingLot;
 
   const StartSessionScreen({super.key, required this.parkingLot});
 

@@ -1,7 +1,7 @@
 // [FULL REPLACEMENT] frontend/user_interface/lib/SERVICES/parking_service.dart
 
 import 'dart:convert';
-import '../MODELS/parking_lot.dart';
+import '../MODELS/parking.dart';
 import 'AUTHETNTICATION HELPERS/authenticated_http_client.dart';
 //final String _baseUrl = 'http://127.0.0.1:8000/api/parkings/';
 final String _baseUrl = 'http://10.0.2.2:8000/api/parkings/';
@@ -11,7 +11,7 @@ class ParkingApiService {
 
   
 
-  Future<List<ParkingLot>> fetchAllParkingLots() async {
+  Future<List<Parking>> fetchAllParkingLots() async {
     try {
       final response = await _httpClient.get(Uri.parse(_baseUrl));
       if (response.statusCode == 200) {
@@ -30,7 +30,7 @@ class ParkingApiService {
         }
 
         return jsonList
-            .map((json) => ParkingLot.fromJson(json as Map<String, dynamic>))
+            .map((json) => Parking.fromJson(json as Map<String, dynamic>))
             .toList();
       } else {
         throw Exception(

@@ -7,7 +7,7 @@ import 'package:user_interface/SCREENS/sessions/utils/active_session_card.dart';
 import 'package:user_interface/SERVICES/parking_session_service.dart';
 import 'dart:async';
 import '../../MAIN UTILS/app_theme.dart';
-import 'package:user_interface/MODELS/parking_lot.dart';
+import 'package:user_interface/MODELS/parking.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:user_interface/STATE/parking_session_state.dart';
 import 'package:user_interface/STATE/payment_state.dart';
@@ -44,7 +44,7 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
 
       if (active != null) {
         final config =
-            active.parkingLot?.tariffConfig ?? ParkingLot.defaultTariffConfig;
+            active.parkingLot?.tariffConfig ?? Parking.defaultTariffConfig;
 
         ref.read(parkingControllerProvider.notifier).start(
               sessionId: active.id,

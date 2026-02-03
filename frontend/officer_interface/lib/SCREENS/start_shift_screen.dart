@@ -5,7 +5,6 @@ import 'package:officer_interface/SCREENS/home_screen.dart';
 import 'package:officer_interface/SCREENS/login_screen.dart';
 import 'package:officer_interface/services/shift_service.dart';
 import 'package:officer_interface/services/auth_service.dart';
-import 'package:officer_interface/services/user_session.dart';
 
 class StartShiftScreen extends StatefulWidget {
   const StartShiftScreen({super.key});

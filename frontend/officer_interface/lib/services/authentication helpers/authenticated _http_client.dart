@@ -12,9 +12,6 @@ class AuthenticatedHttpClient {
 
   AuthenticatedHttpClient() : _storageService = SecureStorageService();
 
-  // Headers base vuoti, li gestiamo dinamicamente
-  final Map<String, String> _baseHeaders = {};
-
   Future<Map<String, String>> _getAuthHeaders(String? token) async {
     final headers = <String, String>{};
     if (token != null) {

@@ -10,6 +10,7 @@ import 'package:user_interface/SCREENS/login/login_screen.dart';
 import 'package:user_interface/SERVICES/AUTHETNTICATION%20HELPERS/secure_storage_service.dart';
 import 'package:user_interface/services/user_service.dart';
 import 'package:user_interface/main.dart';
+import 'package:user_interface/SERVICES/map_style_service.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -20,8 +21,31 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _notificationsEnabled = true;
+  bool _darkMapStyle = false;
   final SecureStorageService _storageService = SecureStorageService();
   final UserService _userService = UserService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMapStylePreference();
+  }
+
+  Future<void> _loadMapStylePreference() async {
+    final isDark = await MapStyleService.isDarkMode();
+    if (mounted) {
+      setState(() {
+        _darkMapStyle = isDark;
+      });
+    }
+  }
+
+  Future<void> _toggleMapStyle(bool value) async {
+    setState(() {
+      _darkMapStyle = value;
+    });
+    await MapStyleService.setDarkMode(value);
+  }
 
   Future<void> _handleLogout() async {
     await _storageService.deleteTokens();
@@ -53,21 +77,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (success) {
       await _storageService.deleteTokens();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account deleted successfully')),
-        );
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const LoginScreen()),
-            (Route<dynamic> route) => false,
-          );
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to delete account. Please try again.'),
-            backgroundColor: Colors.red,
-          ),
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (Route<dynamic> route) => false,
         );
       }
     }
@@ -141,27 +153,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                 setStateDialog(() => isLoading = false);
                                 if (success) {
                                   Navigator.pop(ctx);
-                                  ScaffoldMessenger.of(
-                                    this.context,
-                                  ).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Password updated successfully',
-                                      ),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                } else {
-                                  ScaffoldMessenger.of(
-                                    this.context,
-                                  ).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Failed. Check your current password.',
-                                      ),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
                                 }
                               }
                             },
@@ -424,6 +415,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     setState(() => _notificationsEnabled = val);
                   },
                 ),
+                const SizedBox(height: 10),
+                _buildSwitchTile(
+                  context,
+                  icon: _darkMapStyle ? Icons.nightlight_round : Icons.wb_sunny,
+                  title: 'Dark Map Style',
+                  subtitle: 'Toggle between light and dark map',
+                  value: _darkMapStyle,
+                  onChanged: _toggleMapStyle,
+                ),
                 const SizedBox(height: 30),
                 _buildSectionHeader('Danger Zone'),
                 const SizedBox(height: 15),
@@ -509,6 +509,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     BuildContext context, {
     required IconData icon,
     required String title,
+    String? subtitle,
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
@@ -536,11 +537,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             fontWeight: FontWeight.w600,
           ),
         ),
+        subtitle: subtitle != null
+            ? Text(
+                subtitle,
+                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+              )
+            : null,
         trailing: Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: const Color(0xFF8B2C87),
-          activeTrackColor: const Color(0xFF8B2C87).withOpacity(0.4),
+          activeColor: Colors.greenAccent,
+          activeTrackColor: Colors.greenAccent.withOpacity(0.4),
           inactiveThumbColor: Colors.white,
           inactiveTrackColor: Colors.white24,
         ),

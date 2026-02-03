@@ -9,7 +9,7 @@ import 'package:user_interface/SCREENS/start session/start_session_screen.dart';
 import 'package:user_interface/SERVICES/AUTHETNTICATION HELPERS/secure_storage_service.dart';
 import 'package:user_interface/SERVICES/parking_service.dart';
 import 'package:user_interface/SERVICES/user_service.dart';
-import 'package:user_interface/MODELS/parking_lot.dart';
+import 'package:user_interface/MODELS/parking.dart';
 
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
@@ -39,16 +39,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  List<ParkingLot> _parkingLots = [];
-  List<ParkingLot> _nearbyParkingLots = [];
-  List<ParkingLot> _filteredParkingLots = [];
+  List<Parking> _parkingLots = [];
+  List<Parking> _nearbyParkingLots = [];
+  List<Parking> _filteredParkingLots = [];
 
   final FocusNode _searchFocusNode = FocusNode();
   bool _isSearchExpanded = false;
   bool _isNavigating = false;
   static const double _searchBarHeight = 60.0;
 
-  ParkingLot? _selectedLot;
+  Parking? _selectedLot;
+
+  int _mapKey = 0;
 
   @override
   void initState() {
@@ -174,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _applySearchFilter(List<ParkingLot> sourceLots) {
+  void _applySearchFilter(List<Parking> sourceLots) {
     if (!mounted) return;
     if (_searchQuery.isEmpty) {
       _filteredParkingLots = sourceLots;
@@ -262,7 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _navigateToStartSession(ParkingLot parkingLot) async {
+  void _navigateToStartSession(Parking parkingLot) async {
     setState(() {
       _isNavigating = true;
     });
@@ -299,8 +301,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final distanceInMeters = Geolocator.distanceBetween(
         _currentPosition.latitude,
         _currentPosition.longitude,
-        lot.centerPosition.latitude,
-        lot.centerPosition.longitude,
+        lot.latitude ?? 0.0,
+        lot.longitude ?? 0.0,
       );
       return distanceInMeters <= (_distanceLimitKm * 1000);
     }).toList();
@@ -308,17 +310,20 @@ class _HomeScreenState extends State<HomeScreen> {
     _applySearchFilter(_nearbyParkingLots);
 
     for (var lot in _filteredParkingLots) {
+      final LatLng lotPosition = LatLng(
+        lot.markerLatitude ?? lot.latitude ?? 0.0,
+        lot.markerLongitude ?? lot.longitude ?? 0.0,
+      );
+      
       newMarkers.add(
         Marker(
           markerId: MarkerId(lot.id.toString()),
-          position: lot.centerPosition,
-          // InfoWindow rimossa - usa solo la card custom
+          position: lotPosition,
           icon: _parkingMarkerIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
           onTap: () {
-            // mostra overlay custom con riepilogo e CTA
             setState(() => _selectedLot = lot);
             _mapController?.animateCamera(
-              CameraUpdate.newLatLng(lot.centerPosition),
+              CameraUpdate.newLatLng(lotPosition),
             );
           },
         ),
@@ -334,7 +339,11 @@ class _HomeScreenState extends State<HomeScreen> {
       LatLng targetPosition = _currentPosition;
 
       if (!_locationAccessGranted && _filteredParkingLots.isNotEmpty) {
-        targetPosition = _filteredParkingLots.first.centerPosition;
+        final firstLot = _filteredParkingLots.first;
+        targetPosition = LatLng(
+          firstLot.markerLatitude ?? firstLot.latitude ?? 0.0,
+          firstLot.markerLongitude ?? firstLot.longitude ?? 0.0,
+        );
       }
 
       Future.delayed(const Duration(milliseconds: 50), () {
@@ -360,6 +369,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Stack(
       children: [
         HomeMapWidget(
+          key: ValueKey(_mapKey),
           locationAccessGranted: _locationAccessGranted,
           currentPosition: _currentPosition,
           markers: _markers,
@@ -486,7 +496,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        'Available spots: ${_selectedLot!.availableSpaces}',
+                                        'Available spots: ${_selectedLot!.availableSpots}',
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 13,

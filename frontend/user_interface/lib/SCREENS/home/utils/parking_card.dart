@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:user_interface/MODELS/parking_lot.dart'; // Assumi questo import
+import 'package:user_interface/MODELS/parking.dart';
 
 class ParkingCard extends StatelessWidget {
-  // Invece di passare campi singoli, passiamo l'oggetto ParkingLot completo
-  final ParkingLot parkingLot; 
-  final double distance; 
+  final Parking parkingLot;
+  final double distance;
 
   const ParkingCard({
     super.key,
@@ -20,7 +19,7 @@ class ParkingCard extends StatelessWidget {
       case 'HOURLY_LINEAR':
         return '€${config.dayBaseRate.toStringAsFixed(2)}/h';
       case 'HOURLY_VARIABLE':
-        return 'Variable Rate'; 
+        return 'Variable Rate';
       default:
         return 'N/A';
     }
@@ -60,13 +59,12 @@ class ParkingCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "${parkingLot.availableSpaces} spots • ${_getTariffDisplay()}", 
+                "${parkingLot.availableSpots} spots • ${_getTariffDisplay()}",
                 style: const TextStyle(
                   fontSize: 14,
                   color: Colors.blueAccent,
                 ),
               ),
-              // ...
             ],
           ),
         ],

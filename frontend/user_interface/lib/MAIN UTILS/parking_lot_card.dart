@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconly/iconly.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import '../MODELS/parking_lot.dart';
+import '../MODELS/parking.dart';
 import '../MAIN UTILS/location_utils.dart';
 
 class ParkingLotCard extends StatelessWidget {
-  final ParkingLot parkingLot;
+  final Parking parkingLot;
   final LatLng userPosition;
   final VoidCallback onTap;
 
@@ -19,7 +19,7 @@ class ParkingLotCard extends StatelessWidget {
 
   Color _getAvailabilityColor() {
     if (parkingLot.totalSpots == 0) return Colors.grey;
-    final ratio = parkingLot.availableSpaces / parkingLot.totalSpots;
+    final ratio = parkingLot.availableSpots / parkingLot.totalSpots;
     if (ratio > 0.6) return Colors.greenAccent;
     if (ratio > 0.2) return Colors.orangeAccent;
     if (ratio > 0) return Colors.redAccent;
@@ -28,13 +28,18 @@ class ParkingLotCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final availableSpots = parkingLot.availableSpaces;
+    final availableSpots = parkingLot.availableSpots;
     final availabilityColor = _getAvailabilityColor();
     
-    // Calcolo distanza (assumendo che LocationUtils esista)
+    // Calcolo distanza
+    final LatLng parkingPosition = LatLng(
+      parkingLot.markerLatitude ?? parkingLot.latitude ?? 0.0,
+      parkingLot.markerLongitude ?? parkingLot.longitude ?? 0.0,
+    );
+    
     final distance = LocationUtils.calculateDistance(
       userPosition,
-      parkingLot.centerPosition,
+      parkingPosition,
     );
 
     // ⭐ LOGICA DI VISUALIZZAZIONE TARIFFA AGGIORNATA

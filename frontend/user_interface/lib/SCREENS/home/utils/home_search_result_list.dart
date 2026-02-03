@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:user_interface/MODELS/parking_lot.dart';
+import 'package:user_interface/MODELS/parking.dart';
 import 'package:user_interface/MAIN%20UTILS/parking_lot_card.dart';
 
 class HomeSearchResultsList extends StatelessWidget {
   final String searchQuery;
-  final List<ParkingLot> filteredParkingLots;
+  final List<Parking> filteredParkingLots;
   final LatLng userPosition;
-  final void Function(ParkingLot) onParkingLotTap;
+  final void Function(Parking) onParkingLotTap;
 
   const HomeSearchResultsList({
     super.key,

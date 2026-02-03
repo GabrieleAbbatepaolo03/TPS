@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:user_interface/SERVICES/map_style_service.dart';
 
-class HomeMapWidget extends StatelessWidget {
+class HomeMapWidget extends StatefulWidget {
   final bool locationAccessGranted;
   final LatLng currentPosition;
   final Set<Marker> markers;
@@ -23,6 +24,50 @@ class HomeMapWidget extends StatelessWidget {
   });
 
   @override
+  State<HomeMapWidget> createState() => _HomeMapWidgetState();
+}
+
+class _HomeMapWidgetState extends State<HomeMapWidget> {
+  String _mapStyle = MapStyleService.lightStyle;
+  GoogleMapController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMapStyle();
+  }
+
+  @override
+  void didUpdateWidget(HomeMapWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reload style when widget updates
+    _loadMapStyle();
+  }
+
+  Future<void> _loadMapStyle() async {
+    final style = await MapStyleService.getCurrentStyle();
+    if (mounted) {
+      setState(() {
+        _mapStyle = style;
+      });
+      // Update existing map controller if available
+      _controller?.setMapStyle(_mapStyle);
+    }
+  }
+
+  void _onMapCreated(GoogleMapController controller) {
+    _controller = controller;
+    controller.setMapStyle(_mapStyle);
+    widget.onMapCreated(controller);
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     const backgroundGradient = LinearGradient(
       begin: Alignment.bottomCenter,
@@ -32,29 +77,33 @@ class HomeMapWidget extends StatelessWidget {
         Color.fromARGB(255, 2, 11, 60),
       ],
     );
-    if (isLoading) {
+    
+    if (widget.isLoading) {
       return Container(
-          decoration: const BoxDecoration(gradient: backgroundGradient),
-          child: const Center(
-              child: CircularProgressIndicator(color: Colors.white)));
+        decoration: const BoxDecoration(gradient: backgroundGradient),
+        child: const Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
+      );
     }
-    if (locationAccessGranted) {
+    
+    if (widget.locationAccessGranted) {
       return GoogleMap(
-        onMapCreated: onMapCreated,
+        onMapCreated: _onMapCreated,
         zoomControlsEnabled: false,
         webCameraControlEnabled: false,
         initialCameraPosition: CameraPosition(
-          target: currentPosition,
+          target: widget.currentPosition,
           zoom: 16,
         ),
-        markers: markers,
+        markers: widget.markers,
         myLocationEnabled: true,
         myLocationButtonEnabled: true,
-        onTap: (_) => onTap?.call(),
-        scrollGesturesEnabled: gesturesEnabled,
-        zoomGesturesEnabled: gesturesEnabled,
-        tiltGesturesEnabled: gesturesEnabled,
-        rotateGesturesEnabled: gesturesEnabled,
+        onTap: (_) => widget.onTap?.call(),
+        scrollGesturesEnabled: widget.gesturesEnabled,
+        zoomGesturesEnabled: widget.gesturesEnabled,
+        tiltGesturesEnabled: widget.gesturesEnabled,
+        rotateGesturesEnabled: widget.gesturesEnabled,
       );
     } else {
       return Container(
