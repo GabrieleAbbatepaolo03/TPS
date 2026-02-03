@@ -255,24 +255,30 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
               final historySessions = allSessions.where((s) => !s.isActive).toList();
               final List<ParkingSession> limitedHistory = historySessions.take(3).toList();
 
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const PageTitle(title: 'Sessions'),
-                    const SizedBox(height: 30),
-                    _buildSectionTitle(context, 'Active Sessions'),
-                    const SizedBox(height: 15),
-                    _buildActiveSessionsList(activeSessionList),
-                    const SizedBox(height: 30),
-                    _buildSectionTitle(context, 'History'),
-                    const SizedBox(height: 15),
-                    LimitedHistoryList(
-                      sessions: limitedHistory,
-                      totalCount: historySessions.length,
-                    ),
-                  ],
+              return ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(
+                  physics: const ClampingScrollPhysics(),
+                  overscroll: false,
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const PageTitle(title: 'Sessions'),
+                      const SizedBox(height: 30),
+                      _buildSectionTitle(context, 'Active Sessions'),
+                      const SizedBox(height: 15),
+                      _buildActiveSessionsList(activeSessionList),
+                      const SizedBox(height: 30),
+                      _buildSectionTitle(context, 'History'),
+                      const SizedBox(height: 15),
+                      LimitedHistoryList(
+                        sessions: limitedHistory,
+                        totalCount: historySessions.length,
+                      ),
+                    ],
+                  ),
                 ),
               );
             },

@@ -17,16 +17,17 @@ class City(models.Model):
     Master list of cities - only modifiable by superusers
     """
     name = models.CharField(max_length=100, unique=True)
-    country = models.CharField(max_length=100, default='Italy')
+    country = models.CharField(max_length=100, default='Italy')  # Add default
+    center_latitude = models.FloatField(null=True, blank=True)
+    center_longitude = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        verbose_name = 'City'
-        verbose_name_plural = 'Cities'
+        verbose_name_plural = "Cities"
         ordering = ['name']
     
     def __str__(self):
-        return f"{self.name}, {self.country}"
+        return self.name
 
 class Parking(models.Model):
     name = models.CharField(max_length=100)
@@ -76,17 +77,27 @@ class Parking(models.Model):
 
     def get_marker_position(self):
         """
-        Returns marker position (lat, lng):
-        - If entrance exists: use entrance coordinates
-        - Otherwise: use polygon centroid
+        Returns the marker position for the map.
+        Priority: entrance > center (lat/lng) > polygon centroid
         """
-        # Check if entrance exists
+        # 1. If entrance exists, use it
         entrance = self.entrances.first()
-        if entrance:
-            return entrance.latitude, entrance.longitude
+        if entrance and entrance.latitude and entrance.longitude:
+            return (entrance.latitude, entrance.longitude)
         
-        # Use centroid
-        return self.calculate_centroid()
+        # 2. If center coordinates exist, use them
+        if self.latitude is not None and self.longitude is not None:
+            return (self.latitude, self.longitude)
+        
+        # 3. Fall back to polygon centroid
+        coords = self.get_polygon_coords()
+        if len(coords) >= 3:
+            sum_lat = sum(c['lat'] for c in coords)
+            sum_lng = sum(c['lng'] for c in coords)
+            return (sum_lat / len(coords), sum_lng / len(coords))
+        
+        # 4. No position available
+        return (None, None)
 
     @property
     def total_spots(self):

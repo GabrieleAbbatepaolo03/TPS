@@ -12,11 +12,11 @@ class HomeMapWidget extends ConsumerStatefulWidget {
   final Set<Polygon> polygons;
   final Function(GoogleMapController) onMapCreated;
   final bool isLoading;
-  final void Function()? onTap;
+  final VoidCallback? onTap;
   final bool gesturesEnabled;
 
   const HomeMapWidget({
-    super.key,
+    Key? key,
     required this.locationAccessGranted,
     required this.currentPosition,
     required this.markers,
@@ -24,8 +24,8 @@ class HomeMapWidget extends ConsumerStatefulWidget {
     required this.onMapCreated,
     required this.isLoading,
     this.onTap,
-    required this.gesturesEnabled,
-  });
+    this.gesturesEnabled = true,
+  }) : super(key: key);
 
   @override
   ConsumerState<HomeMapWidget> createState() => _HomeMapWidgetState();
@@ -35,33 +35,14 @@ class _HomeMapWidgetState extends ConsumerState<HomeMapWidget> {
   GoogleMapController? _controller;
 
   @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  void _onMapCreated(GoogleMapController controller) {
-    _controller = controller;
-    _updateMapStyle();
-    widget.onMapCreated(controller);
-  }
-
-  Future<void> _updateMapStyle() async {
-    if (_controller != null) {
-      final style = await MapStyleService.getCurrentStyle();
-      _controller!.setMapStyle(style);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     // Watch the map style provider to trigger rebuilds
-    ref.watch(mapStyleProvider);
-    
-    // Update map style when provider changes
-    if (_controller != null) {
-      _updateMapStyle();
-    }
+    ref.listen<bool>(mapStyleProvider, (previous, next) {
+      // When style changes, update the map
+      if (previous != next && _controller != null) {
+        _updateMapStyle();
+      }
+    });
 
     const backgroundGradient = LinearGradient(
       begin: Alignment.bottomCenter,
@@ -85,7 +66,6 @@ class _HomeMapWidgetState extends ConsumerState<HomeMapWidget> {
       return GoogleMap(
         onMapCreated: _onMapCreated,
         zoomControlsEnabled: false,
-        webCameraControlEnabled: false,
         initialCameraPosition: CameraPosition(
           target: widget.currentPosition,
           zoom: 16,
@@ -129,6 +109,19 @@ class _HomeMapWidgetState extends ConsumerState<HomeMapWidget> {
           ),
         ),
       );
+    }
+  }
+
+  Future<void> _onMapCreated(GoogleMapController controller) async {
+    _controller = controller;
+    await _updateMapStyle();
+    widget.onMapCreated(controller);
+  }
+
+  Future<void> _updateMapStyle() async {
+    if (_controller != null) {
+      final style = await MapStyleService.getCurrentStyle();
+      await _controller!.setMapStyle(style);
     }
   }
 }

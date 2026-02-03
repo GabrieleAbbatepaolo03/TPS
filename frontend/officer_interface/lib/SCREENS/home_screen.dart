@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:officer_interface/MODELS/parking_session.dart';
 import 'package:officer_interface/services/controller_service.dart';
 
@@ -69,9 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return "$h:$m:$s";
   }
 
-  // ===============================
-  // 🔍 手动查询
-  // ===============================
   Future<void> _searchPlate() async {
     final plate = _plateController.text.trim().toUpperCase();
     if (plate.isEmpty) {
@@ -110,9 +108,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // ===============================
-  // 📷 OCR 拍照识别
-  // ===============================
   Future<void> _scanPlate() async {
     try {
       setState(() {
@@ -355,16 +350,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return TextField(
       controller: _plateController,
       textCapitalization: TextCapitalization.characters,
-      style: GoogleFonts.poppins(color: Colors.white, fontSize: 20),
+      style: GoogleFonts.poppins(color: Colors.white, fontSize: 20, letterSpacing: 2),
+      cursorColor: Colors.white,
       decoration: InputDecoration(
-        hintText: "E.g. AB123CD",
-        hintStyle: GoogleFonts.poppins(color: Colors.white54),
+        hintText: "E.g., AB123CD",
+        hintStyle: GoogleFonts.poppins(color: Colors.white54, fontSize: 20, letterSpacing: 2),
         filled: true,
         fillColor: Colors.white.withOpacity(0.1),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide.none,
         ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       ),
       onSubmitted: (_) => _searchPlate(),
     );
@@ -372,25 +369,124 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildResultsArea() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      );
+      return const Center(child: CircularProgressIndicator(color: Colors.white));
     }
-
+    
     if (_activeSession != null) {
-      return Text(
-        "ACTIVE SESSION FOUND",
-        style: GoogleFonts.poppins(color: Colors.greenAccent, fontSize: 20),
-      );
+      return _buildActiveSessionCard(_activeSession!);
     }
 
     if (_message != null) {
-      return Text(
-        _message!,
-        style: GoogleFonts.poppins(color: Colors.redAccent, fontSize: 18),
+      final isError = _message!.contains("NO active parking session");
+      return Center(
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: isError ? Colors.red.withOpacity(0.1) : Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: isError ? Colors.redAccent : Colors.greenAccent),
+          ),
+          child: Text(
+            _message!,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              color: isError ? Colors.redAccent : Colors.greenAccent,
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
       );
     }
 
     return const SizedBox.shrink();
+  }
+  
+  Widget _buildActiveSessionCard(ParkingSession session) {
+    final startTime = session.startTime.toLocal();
+    final duration = DateTime.now().difference(startTime);
+    final formatter = DateFormat('MMM d, yyyy HH:mm');
+    final durationHours = duration.inHours;
+    final durationMinutes = duration.inMinutes % 60;
+    
+    return Container(
+      padding: const EdgeInsets.all(30),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.green.shade800.withOpacity(0.3),
+            const Color.fromARGB(255, 2, 11, 60).withOpacity(0.5),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.greenAccent, width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "ACTIVE SESSION",
+                style: GoogleFonts.poppins(color: Colors.greenAccent, fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const Icon(Icons.check_circle, color: Colors.greenAccent, size: 30),
+            ],
+          ),
+          const Divider(color: Colors.white38, height: 30),
+          
+          // FIXED: Show only Plate, not Name
+          _buildInfoRow("License Plate", session.vehiclePlate), 
+          _buildInfoRow("Parking Lot", session.parkingLot?.name ?? "Unknown Parking"),
+          _buildInfoRow("Parking Address", session.parkingLot?.address ?? "N/A"),
+          _buildInfoRow("Session ID", "#${session.id}"),
+          
+          const Divider(color: Colors.white38, height: 30),
+
+          // Duration and Cost
+          _buildInfoRow(
+            "Start Time", 
+            formatter.format(startTime), 
+            isHighlight: true
+          ),
+          _buildInfoRow(
+            "Duration", 
+            "${durationHours}h ${durationMinutes}m",
+            isHighlight: true
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildInfoRow(String label, String value, {bool isHighlight = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 200,
+            child: Text(
+              label,
+              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 16),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: GoogleFonts.poppins(
+                color: isHighlight ? Colors.white : Colors.white, 
+                fontSize: 16, 
+                fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

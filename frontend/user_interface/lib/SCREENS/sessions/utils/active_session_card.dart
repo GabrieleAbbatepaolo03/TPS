@@ -101,13 +101,12 @@ class ActiveSessionCard extends ConsumerWidget {
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(IconlyBold.discovery, size: 14, color: Colors.white70),
-                        const SizedBox(width: 5),
                         Text(
                           session.vehicle?.plate ?? 'Unknown Plate',
                           style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
@@ -117,6 +116,7 @@ class ActiveSessionCard extends ConsumerWidget {
                   ],
                 ),
               ),
+              const SizedBox(width: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(

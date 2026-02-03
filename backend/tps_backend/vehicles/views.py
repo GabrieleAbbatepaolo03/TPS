@@ -64,14 +64,14 @@ class VehicleViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['patch', 'put'])
     def set_favorite(self, request, pk=None):
         vehicle = self.get_object()
-
-        # Tenta decodifica manuale se necessario
+        
+        # Tenta decodifica manuale se necessario (per sicurezza)
         data = request.data
         if isinstance(data, str):
-            try:
-                data = json.loads(request.body.decode('utf-8'))
-            except:
-                pass
+             try:
+                 data = json.loads(request.body.decode('utf-8'))
+             except:
+                 pass
 
         is_favorite = data.get('is_favorite')
 
@@ -92,20 +92,24 @@ class VehicleViewSet(viewsets.ModelViewSet):
 
 
 class ParkingSessionViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing parking sessions
+    """
     serializer_class = ParkingSessionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        user = self.request.user
-        is_active_query = self.request.query_params.get('active')
+        # Return sessions for the authenticated user
+        if self.request.user.is_authenticated:
+            return ParkingSession.objects.filter(user=self.request.user)
+        return ParkingSession.objects.none()
 
-        queryset = ParkingSession.objects.filter(user=user)
-
-        if is_active_query is not None:
-            is_active = is_active_query.lower() in ['true', '1']
-            queryset = queryset.filter(is_active=is_active)
-
-        return queryset.order_by('-start_time')
+    @action(detail=False, methods=['get'])
+    def active(self, request):
+        """Get all active sessions for the current user"""
+        active_sessions = self.get_queryset().filter(is_active=True)
+        serializer = self.get_serializer(active_sessions, many=True)
+        return Response(serializer.data)
 
     def perform_create(self, serializer):
         user = self.request.user

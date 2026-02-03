@@ -7,9 +7,10 @@ from django.utils import timezone
 from decimal import Decimal
 
 from .models import Parking, Spot, City
-from .serializers import ParkingSerializer, SpotSerializer
+from .serializers import ParkingSerializer, SpotSerializer, CitySerializer
 from vehicles.models import ParkingSession
 from vehicles.serializers import ParkingSessionSerializer
+from rest_framework.permissions import IsAuthenticated
 
 class ParkingViewSet(viewsets.ModelViewSet):
     serializer_class = ParkingSerializer
@@ -140,29 +141,32 @@ class SpotViewSet(viewsets.ModelViewSet):
         serializer.save()
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([IsAuthenticated])
 def get_cities_list(request):
     """
-    Returns list of cities based on user role:
-    - Superusers: all cities from City model
-    - Managers: only their allowed_cities
-    - Others: all cities (for public access)
+    Returns a simple list of city names from parkings
     """
-    user = request.user
-    
-    if user.is_superuser:
-        # Superusers see all cities from the City model
-        cities = City.objects.values_list('name', flat=True).order_by('name')
-        return Response({'cities': list(cities)})
-    
-    elif hasattr(user, 'role') and user.role == 'manager':
-        # Managers see only their allowed cities
-        allowed = getattr(user, 'allowed_cities', [])
-        if allowed and isinstance(allowed, list):
-            return Response({'cities': sorted(allowed)})
-        return Response({'cities': []})
-    
-    else:
-        # Regular users see all cities
-        cities = City.objects.values_list('name', flat=True).order_by('name')
-        return Response({'cities': list(cities)})
+    cities = Parking.objects.values_list('city', flat=True).distinct().order_by('city')
+    return Response({'cities': list(cities)})
+
+class CityViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing cities with their coordinates
+    """
+    queryset = City.objects.all()
+    serializer_class = CitySerializer
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['get'], url_path='list_with_coordinates')
+    def list_with_coordinates(self, request):
+        """Return list of cities with their center coordinates"""
+        cities = self.get_queryset()
+        data = [
+            {
+                'name': city.name,
+                'latitude': city.center_latitude,
+                'longitude': city.center_longitude
+            }
+            for city in cities
+        ]
+        return Response(data)

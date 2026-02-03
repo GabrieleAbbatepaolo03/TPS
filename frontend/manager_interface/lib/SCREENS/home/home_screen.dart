@@ -12,6 +12,7 @@ import 'package:manager_interface/SCREENS/home/utils/parking_card.dart';
 import '../../services/parking_service.dart';
 import 'package:manager_interface/SERVICES/auth_service.dart';
 import 'package:manager_interface/SCREENS/login_screen.dart';
+import 'package:manager_interface/models/city.dart';
 
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
@@ -27,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // --- State Data ---
   List<String> cities = [];
   List<String> filteredCities = [];
+  List<City> citiesWithCoordinates = []; // Add this
 
   List<Parking> allParkings = [];
   List<Parking> selectedCityParkings = [];
@@ -154,16 +156,40 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initDashboard() async {
     setState(() => isLoading = true);
     try {
-      final cityList = await ParkingService.getCities();
+      debugPrint("🔍 Loading cities...");
+      
+      // Load cities with coordinates (includes all cities in DB)
+      final citiesWithCoords = await ParkingService.getCitiesWithCoordinates();
+      debugPrint("✅ Cities with coordinates loaded: ${citiesWithCoords.length}");
+      
+      // Extract city names for the list
+      final cityNames = citiesWithCoords.map((c) => c.name).toList();
+      cityNames.sort();
+      debugPrint("✅ City names: $cityNames");
 
       setState(() {
-        cities = cityList;
-        filteredCities = cityList;
+        cities = cityNames;
+        filteredCities = cityNames;
+        citiesWithCoordinates = citiesWithCoords;
         isLoading = false;
       });
-    } catch (e) {
-      debugPrint("Error loading dashboard: $e");
+      
+      debugPrint("✅ Dashboard initialized successfully");
+    } catch (e, stackTrace) {
+      debugPrint("❌ Error loading dashboard: $e");
+      debugPrint("Stack trace: $stackTrace");
       setState(() => isLoading = false);
+      
+      // Show error to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading cities: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
     }
   }
 
@@ -184,21 +210,33 @@ class _HomeScreenState extends State<HomeScreen> {
       final newPolygons = <Polygon>{};
 
       for (var p in parkings) {
-        // Add marker at entrance or centroid
+        // Add marker - either from markerLatitude/Longitude OR from latitude/longitude
+        LatLng? markerPosition;
+        
         if (p.markerLatitude != null && p.markerLongitude != null) {
+          markerPosition = LatLng(p.markerLatitude!, p.markerLongitude!);
+        } else if (p.latitude != null && p.longitude != null) {
+          // Fallback to center coordinates if no marker position
+          markerPosition = LatLng(p.latitude!, p.longitude!);
+        }
+
+        if (markerPosition != null) {
           newMarkers.add(
             Marker(
               markerId: MarkerId('p_${p.id}'),
-              position: LatLng(p.markerLatitude!, p.markerLongitude!),
-              infoWindow: InfoWindow(title: p.name, snippet: p.address),
+              position: markerPosition,
+              infoWindow: InfoWindow(
+                title: p.name,
+                snippet: p.address,
+              ),
               onTap: () => _navigateToDetail(p),
               icon: _parkingIcon ?? BitmapDescriptor.defaultMarker,
             ),
           );
         }
 
-        // Add polygon if coordinates exist
-        if (p.polygonCoords.isNotEmpty) {
+        // Add polygon ONLY if it has 3+ points
+        if (p.polygonCoords.length >= 3) {
           newPolygons.add(
             Polygon(
               polygonId: PolygonId('poly_${p.id}'),
@@ -223,13 +261,21 @@ class _HomeScreenState extends State<HomeScreen> {
         isParkingsLoading = false;
       });
 
-      if (parkings.isNotEmpty && parkings.first.markerLatitude != null) {
-        _mapController?.animateCamera(
-          CameraUpdate.newLatLngZoom(
-            LatLng(parkings.first.markerLatitude!, parkings.first.markerLongitude!),
-            12,
-          ),
-        );
+      // Center map on first parking (with fallback to center coordinates)
+      if (parkings.isNotEmpty) {
+        LatLng? cameraTarget;
+        
+        if (parkings.first.markerLatitude != null && parkings.first.markerLongitude != null) {
+          cameraTarget = LatLng(parkings.first.markerLatitude!, parkings.first.markerLongitude!);
+        } else if (parkings.first.latitude != null && parkings.first.longitude != null) {
+          cameraTarget = LatLng(parkings.first.latitude!, parkings.first.longitude!);
+        }
+
+        if (cameraTarget != null) {
+          _mapController?.animateCamera(
+            CameraUpdate.newLatLngZoom(cameraTarget, 12),
+          );
+        }
       }
     } catch (e) {
       setState(() => isParkingsLoading = false);
@@ -281,10 +327,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // --- Add Parking Handler ---
   Future<void> _handleAddParking() async {
-    // FIXED: Removed knownCity parameter
     final newParking = await showAddParkingDialog(
       context,
-      existingCities: cities,
+      authorizedCities: cities,
+      selectedCity: selectedCity,
+      citiesWithCoordinates: citiesWithCoordinates, // Pass city coordinates
     );
 
     if (newParking != null) {
@@ -294,10 +341,15 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
 
-      final cityList = await ParkingService.getCities();
+      // Reload ALL cities with coordinates (not just cities with parkings)
+      final citiesWithCoords = await ParkingService.getCitiesWithCoordinates();
+      final cityNames = citiesWithCoords.map((c) => c.name).toList();
+      cityNames.sort();
+
       setState(() {
-        cities = cityList;
-        filteredCities = cityList;
+        cities = cityNames;
+        filteredCities = cityNames;
+        citiesWithCoordinates = citiesWithCoords;
       });
 
       // Automatically select the new city to update the list and map
@@ -498,9 +550,10 @@ class _HomeScreenState extends State<HomeScreen> {
         initialCameraPosition: _initialCameraPosition,
         markers: _markers,
         polygons: _polygons,
-        onMapCreated: (c) {
+        onMapCreated: (c) async {
           _mapController = c;
-          _mapController?.setMapStyle(_mapStyle);
+          // Apply style immediately
+          await _mapController?.setMapStyle(_mapStyle);
         },
         zoomControlsEnabled: false,
         myLocationButtonEnabled: false,

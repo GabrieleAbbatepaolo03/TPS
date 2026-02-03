@@ -1,10 +1,11 @@
+import json
 from rest_framework import serializers
 from .models import Parking, Spot, ParkingEntrance, City
 
 class CitySerializer(serializers.ModelSerializer):
     class Meta:
         model = City
-        fields = ['id', 'name', 'country', 'created_at']
+        fields = ['id', 'name', 'center_latitude', 'center_longitude', 'created_at']
         read_only_fields = ['id', 'created_at']
 
 
@@ -73,6 +74,11 @@ class ParkingSerializer(serializers.ModelSerializer):
                 validated_data['polygon_coordinates'] = polygon_coords
             else:
                 validated_data['polygon_coordinates'] = json.dumps(polygon_coords)
+        
+        # Handle polygon coordinates
+        polygon_coords = validated_data.pop('polygon_coords', None)
+        if polygon_coords is not None:
+            validated_data['polygon_coordinates'] = json.dumps(polygon_coords)
         
         return super().update(instance, validated_data)
 

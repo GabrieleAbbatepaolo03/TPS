@@ -10,10 +10,11 @@ import 'package:manager_interface/SCREENS/parking%20detail/utils/live_stats/live
 import 'package:manager_interface/SCREENS/parking%20detail/utils/parking_cost_calculator.dart';
 import 'package:manager_interface/SCREENS/parking%20detail/utils/tariff_management/spot_stat_widgets.dart';
 import 'package:manager_interface/SCREENS/parking%20detail/utils/tariff_management/tariff_selection_card.dart';
-import 'package:manager_interface/SCREENS/parking%20detail/utils/coordinates/coordinate_editor_dialog.dart';
 import 'package:manager_interface/models/spot.dart';
 import 'package:manager_interface/models/tariff_config.dart';
 import 'package:manager_interface/services/parking_service.dart';
+import 'package:manager_interface/MAIN%20UTILS/add_parking_dialog.dart';
+import 'package:manager_interface/models/city.dart';
 
 class ParkingDetailScreen extends StatefulWidget {
   final int parkingId;
@@ -47,10 +48,13 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
   double projectedRevenue = 0.0;
   final double avgStayHours = 3.5;
 
+  List<City> citiesWithCoordinates = [];
+
   @override
   void initState() {
     super.initState();
     _loadDashboardData();
+    _loadCities();
 
     _liveUpdateTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       _silentlyUpdateData();
@@ -311,55 +315,30 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
     ).then((_) => _loadDashboardData());
   }
 
-  Future<void> _editParkingCoordinates() async {
+  Future<void> _editParking() async {
     if (parking == null) return;
 
-    final updatedCoords = await showCoordinateEditorDialog(
+    final cities = [parking!.city]; // Current city
+    
+    final updatedParking = await showAddParkingDialog(
       context,
-      initialCoords: parking!.polygonCoords,
+      authorizedCities: cities,
+      selectedCity: parking!.city,
+      citiesWithCoordinates: citiesWithCoordinates,
+      existingParking: parking, // Pass existing parking for edit mode
     );
 
-    if (updatedCoords != null) {
-      final updatedParking = Parking(
-        id: parking!.id,
-        name: parking!.name,
-        city: parking!.city,
-        address: parking!.address,
-        ratePerHour: parking!.ratePerHour,
-        totalSpots: parking!.totalSpots,
-        occupiedSpots: parking!.occupiedSpots,
-        todayEntries: parking!.todayEntries,
-        todayRevenue: parking!.todayRevenue,
-        tariffConfigJson: parking!.tariffConfigJson,
-        latitude: parking!.latitude,
-        longitude: parking!.longitude,
-        markerLatitude: parking!.markerLatitude,
-        markerLongitude: parking!.markerLongitude,
-        polygonCoords: updatedCoords,
-        entrances: parking!.entrances,
+    if (updatedParking != null) {
+      setState(() {
+        parking = updatedParking;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Parking updated successfully'),
+          backgroundColor: Colors.green,
+        ),
       );
-
-      try {
-        await ParkingService.saveParking(updatedParking);
-
-        setState(() {
-          parking = updatedParking;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Polygon coordinates updated successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update coordinates: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
   }
 
@@ -448,7 +427,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           TextButton.icon(
-            onPressed: _editParkingCoordinates,
+            onPressed: _editParking,
             icon: const Icon(
               Icons.edit_location_alt,
               color: Colors.blueAccent,
@@ -681,5 +660,16 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _loadCities() async {
+    try {
+      final cities = await ParkingService.getCitiesWithCoordinates();
+      setState(() {
+        citiesWithCoordinates = cities;
+      });
+    } catch (e) {
+      debugPrint("Error loading cities: $e");
+    }
   }
 }

@@ -3,16 +3,11 @@ from unfold.admin import ModelAdmin, TabularInline
 from .models import Parking, Spot, ParkingEntrance, City
 
 @admin.register(City)
-class CityAdmin(ModelAdmin):
-    list_display = ('name', 'country', 'parking_count', 'created_at')
-    search_fields = ('name', 'country')
-    list_filter = ('country',)
-    ordering = ('name',)
-    
-    def parking_count(self, obj):
-        """Show how many parkings exist in this city"""
-        return Parking.objects.filter(city=obj.name).count()
-    parking_count.short_description = "Parkings"
+class CityAdmin(admin.ModelAdmin):
+    list_display = ['name', 'center_latitude', 'center_longitude', 'created_at']
+    list_filter = ['created_at']
+    search_fields = ['name']
+    ordering = ['name']
     
     def has_module_permission(self, request):
         """Only superusers can see Cities in admin menu"""

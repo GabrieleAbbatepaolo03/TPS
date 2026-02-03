@@ -11,8 +11,8 @@ admin.site.index_title = "Dashboard Overview"
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('parkings.urls')),
+    path('api/', include('vehicles.urls')),
     path('api/users/', include('users.urls')),
-    path('api/vehicles/', include('vehicles.urls')),
 ]
 
 if settings.DEBUG:
