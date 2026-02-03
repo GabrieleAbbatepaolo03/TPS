@@ -10,18 +10,20 @@ import 'package:user_interface/SERVICES/AUTHETNTICATION HELPERS/secure_storage_s
 import 'package:user_interface/SERVICES/parking_service.dart';
 import 'package:user_interface/SERVICES/user_service.dart';
 import 'package:user_interface/MODELS/parking.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:user_interface/STATE/map_style_state.dart';
 
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   static const double _distanceLimitKm = 10.0;
 
   final UserService _userService = UserService();
@@ -33,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   GoogleMapController? _mapController;
   LatLng _currentPosition = const LatLng(0.0, 0.0);
   final Set<Marker> _markers = {};
+  final Set<Polygon> _polygons = {};
 
   BitmapDescriptor? _userLocationIcon;
   BitmapDescriptor? _parkingMarkerIcon;
@@ -286,6 +289,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void _filterAndDisplayParkings() {
     if (!mounted) return;
     final Set<Marker> newMarkers = {};
+    final Set<Polygon> newPolygons = {};
+    
+    // Get current theme state for polygon colors
+    final isDarkMode = ref.read(mapStyleProvider);
+    
     if (_locationAccessGranted) {
       newMarkers.add(
         Marker(
@@ -328,11 +336,43 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
       );
+
+      // Add polygon if coordinates exist with theme-aware colors
+      if (lot.polygonCoords.isNotEmpty) {
+        final polygonPoints = lot.polygonCoords
+            .map((coord) => LatLng(coord.lat, coord.lng))
+            .toList();
+
+        // Theme-aware colors
+        final strokeColor = isDarkMode ? Colors.greenAccent : Colors.indigo;
+        final fillColor = isDarkMode 
+            ? Colors.greenAccent.withOpacity(0.2) 
+            : Colors.indigoAccent.withOpacity(0.15);
+
+        newPolygons.add(
+          Polygon(
+            polygonId: PolygonId('polygon_${lot.id}'),
+            points: polygonPoints,
+            strokeColor: strokeColor,
+            strokeWidth: 2,
+            fillColor: fillColor,
+            consumeTapEvents: true,
+            onTap: () {
+              setState(() => _selectedLot = lot);
+              _mapController?.animateCamera(
+                CameraUpdate.newLatLng(lotPosition),
+              );
+            },
+          ),
+        );
+      }
     }
 
     setState(() {
       _markers.clear();
       _markers.addAll(newMarkers);
+      _polygons.clear();
+      _polygons.addAll(newPolygons);
     });
 
     if (_mapController != null && newMarkers.isNotEmpty) {
@@ -358,6 +398,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch map style changes to rebuild polygons
+    ref.listen<bool>(mapStyleProvider, (previous, next) {
+      if (previous != next && mounted) {
+        _filterAndDisplayParkings();
+      }
+    });
+
     const searchBarColor = Color.fromARGB(255, 6, 20, 43);
 
     final mediaQuery = MediaQuery.of(context);
@@ -373,6 +420,7 @@ class _HomeScreenState extends State<HomeScreen> {
           locationAccessGranted: _locationAccessGranted,
           currentPosition: _currentPosition,
           markers: _markers,
+          polygons: _polygons,
           onMapCreated: _onMapCreated,
           isLoading: _isLocationLoading,
           onTap: () {

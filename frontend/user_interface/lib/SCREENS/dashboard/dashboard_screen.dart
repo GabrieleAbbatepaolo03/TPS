@@ -302,7 +302,6 @@ class _NeonOverlay extends StatelessWidget {
     this.heightFactor = 0.60,
     this.alignment = Alignment.center,
     this.offset = Offset.zero,
-    super.key,
   });
 
   @override

@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:user_interface/SERVICES/map_style_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:user_interface/STATE/map_style_state.dart';
 
-class HomeMapWidget extends StatefulWidget {
+class HomeMapWidget extends ConsumerStatefulWidget {
   final bool locationAccessGranted;
   final LatLng currentPosition;
   final Set<Marker> markers;
+  final Set<Polygon> polygons;
   final Function(GoogleMapController) onMapCreated;
   final bool isLoading;
   final void Function()? onTap;
@@ -17,6 +20,7 @@ class HomeMapWidget extends StatefulWidget {
     required this.locationAccessGranted,
     required this.currentPosition,
     required this.markers,
+    required this.polygons,
     required this.onMapCreated,
     required this.isLoading,
     this.onTap,
@@ -24,42 +28,11 @@ class HomeMapWidget extends StatefulWidget {
   });
 
   @override
-  State<HomeMapWidget> createState() => _HomeMapWidgetState();
+  ConsumerState<HomeMapWidget> createState() => _HomeMapWidgetState();
 }
 
-class _HomeMapWidgetState extends State<HomeMapWidget> {
-  String _mapStyle = MapStyleService.lightStyle;
+class _HomeMapWidgetState extends ConsumerState<HomeMapWidget> {
   GoogleMapController? _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadMapStyle();
-  }
-
-  @override
-  void didUpdateWidget(HomeMapWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Reload style when widget updates
-    _loadMapStyle();
-  }
-
-  Future<void> _loadMapStyle() async {
-    final style = await MapStyleService.getCurrentStyle();
-    if (mounted) {
-      setState(() {
-        _mapStyle = style;
-      });
-      // Update existing map controller if available
-      _controller?.setMapStyle(_mapStyle);
-    }
-  }
-
-  void _onMapCreated(GoogleMapController controller) {
-    _controller = controller;
-    controller.setMapStyle(_mapStyle);
-    widget.onMapCreated(controller);
-  }
 
   @override
   void dispose() {
@@ -67,8 +40,29 @@ class _HomeMapWidgetState extends State<HomeMapWidget> {
     super.dispose();
   }
 
+  void _onMapCreated(GoogleMapController controller) {
+    _controller = controller;
+    _updateMapStyle();
+    widget.onMapCreated(controller);
+  }
+
+  Future<void> _updateMapStyle() async {
+    if (_controller != null) {
+      final style = await MapStyleService.getCurrentStyle();
+      _controller!.setMapStyle(style);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Watch the map style provider to trigger rebuilds
+    ref.watch(mapStyleProvider);
+    
+    // Update map style when provider changes
+    if (_controller != null) {
+      _updateMapStyle();
+    }
+
     const backgroundGradient = LinearGradient(
       begin: Alignment.bottomCenter,
       end: Alignment.topCenter,
@@ -97,6 +91,7 @@ class _HomeMapWidgetState extends State<HomeMapWidget> {
           zoom: 16,
         ),
         markers: widget.markers,
+        polygons: widget.polygons,
         myLocationEnabled: true,
         myLocationButtonEnabled: true,
         onTap: (_) => widget.onTap?.call(),

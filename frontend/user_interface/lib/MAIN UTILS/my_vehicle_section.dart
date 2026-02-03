@@ -72,29 +72,6 @@ class _MyVehiclesSectionState extends State<MyVehiclesSection> {
     }
   }
 
-  void _handleToggleFavorite(Vehicle vehicle) async {
-    final bool newFavoriteState = !vehicle.isFavorite;
-
-    try {
-
-      await _vehicleService.toggleFavorite(
-        vehicleId: vehicle.id,
-        isFavorite: newFavoriteState,
-      );
-
-      _loadVehicles();
-
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update favorite status.'), 
-            backgroundColor: Colors.red
-          ),
-        );
-      }
-    }
-  }
 
 
   Widget _buildAddVehicleButton() {

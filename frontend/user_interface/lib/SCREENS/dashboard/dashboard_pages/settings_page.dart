@@ -4,13 +4,11 @@ import 'package:iconly/iconly.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:user_interface/MAIN%20UTILS/app_sizes.dart';
 import 'package:user_interface/MAIN%20UTILS/app_theme.dart';
-import 'package:user_interface/MAIN%20UTILS/page_transition.dart';
-import 'package:user_interface/SCREENS/profile/profile_screen.dart';
 import 'package:user_interface/SCREENS/login/login_screen.dart';
 import 'package:user_interface/SERVICES/AUTHETNTICATION%20HELPERS/secure_storage_service.dart';
 import 'package:user_interface/services/user_service.dart';
 import 'package:user_interface/main.dart';
-import 'package:user_interface/SERVICES/map_style_service.dart';
+import 'package:user_interface/STATE/map_style_state.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -21,30 +19,17 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _notificationsEnabled = true;
-  bool _darkMapStyle = false;
   final SecureStorageService _storageService = SecureStorageService();
   final UserService _userService = UserService();
 
   @override
   void initState() {
     super.initState();
-    _loadMapStylePreference();
-  }
-
-  Future<void> _loadMapStylePreference() async {
-    final isDark = await MapStyleService.isDarkMode();
-    if (mounted) {
-      setState(() {
-        _darkMapStyle = isDark;
-      });
-    }
+    // Remove _loadMapStylePreference - now handled by provider
   }
 
   Future<void> _toggleMapStyle(bool value) async {
-    setState(() {
-      _darkMapStyle = value;
-    });
-    await MapStyleService.setDarkMode(value);
+    await ref.read(mapStyleProvider.notifier).toggleStyle(value);
   }
 
   Future<void> _handleLogout() async {
@@ -357,6 +342,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final darkMapStyle = ref.watch(mapStyleProvider);
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
@@ -418,10 +405,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 const SizedBox(height: 10),
                 _buildSwitchTile(
                   context,
-                  icon: _darkMapStyle ? Icons.nightlight_round : Icons.wb_sunny,
+                  icon: darkMapStyle ? Icons.nightlight_round : Icons.wb_sunny,
                   title: 'Dark Map Style',
                   subtitle: 'Toggle between light and dark map',
-                  value: _darkMapStyle,
+                  value: darkMapStyle,
                   onChanged: _toggleMapStyle,
                 ),
                 const SizedBox(height: 30),

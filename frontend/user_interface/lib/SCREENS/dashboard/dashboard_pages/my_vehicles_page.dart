@@ -15,6 +15,7 @@ class MyVehiclesPage extends ConsumerWidget {
   
   void _refreshList(WidgetRef ref) {
 
+    // ignore: unused_result
     ref.refresh(vehicleListProvider);
   }
 
