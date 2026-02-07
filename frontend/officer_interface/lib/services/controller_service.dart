@@ -16,8 +16,6 @@ class ControllerService {
       final response = await _httpClient.get(url);
 
       if (response.statusCode == 200) {
-        // ✅ 核心修改：直接返回解码后的 JSON 字典 (包含 status, session_data 等)
-        // 不要在这里调用 ParkingSession.fromJson，交给 UI 层去处理
         return json.decode(response.body);
       } else if (response.statusCode == 403) {
         throw Exception(
@@ -26,7 +24,6 @@ class ControllerService {
       } else if (response.statusCode == 404) {
         return {'status': 'not_found'};
       } else {
-        // 其他错误 (如 404, 500)
         return null;
       }
     } catch (e) {
@@ -38,17 +35,12 @@ class ControllerService {
   static Future<int> reportViolation(String plate) async {
     final url = Uri.parse('$_apiRoot/users/violations/report/');
     try {
-      final response = await _httpClient.post(
-        url,
-        // body: {'plate': plate}, // 记得用我们之前修好的写法
-        body: {'plate': plate},
-      );
+      final response = await _httpClient.post(url, body: {'plate': plate});
 
-      // 直接返回状态码，交给 UI 去判断显示什么提示
       return response.statusCode;
     } catch (e) {
       print('Report error: $e');
-      return 500; // 网络错误或其他异常
+      return 500;
     }
   }
 }
