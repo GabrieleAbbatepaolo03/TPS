@@ -1,0 +1,1 @@
+web: gunicorn tps_backend.wsgi:application --log-file -
