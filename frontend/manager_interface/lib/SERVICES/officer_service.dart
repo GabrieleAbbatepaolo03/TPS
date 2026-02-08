@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:manager_interface/SERVICES/CONFIG/api.dart';
 import 'package:manager_interface/SERVICES/authentication%20helpers/authenticated_http_client.dart';
 
 class ActiveOfficer {
@@ -51,11 +52,11 @@ class OfficerService {
   static final AuthenticatedHttpClient _client = AuthenticatedHttpClient();
 
   static Future<List<ActiveOfficer>> getActiveOfficers(String city) async {
-    final url = Uri.parse('https://tps-production-c025.up.railway.app/api/users/shifts/active-officers/?city=$city');
+    final url = Uri.parse('${Api.users}/shifts/active-officers/?city=$city');
     final response = await _client.get(url);
 
     if (response.statusCode != 200) {
-      throw Exception('Failed to load active officers: ${response.statusCode}');
+      throw Exception('Failed to load active officers');
     }
 
     final data = jsonDecode(response.body);

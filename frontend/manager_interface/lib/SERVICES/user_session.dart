@@ -19,9 +19,6 @@ class UserSession {
     _role = null;
     _allowedCities = [];
   }
-
-  // Getter
   bool get isSuperAdmin => _role == 'superuser';
-
   List<String> get allowedCities => _allowedCities;
 }

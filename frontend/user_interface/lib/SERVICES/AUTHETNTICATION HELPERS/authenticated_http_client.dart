@@ -2,10 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'secure_storage_service.dart';
 import 'package:user_interface/SERVICES/CONFIG/api.dart';
-import 'dart:developer' as developer;
 
 const String _authBaseUrl = Api.users; 
-
 class AuthenticatedHttpClient {
   final SecureStorageService _storageService;
   AuthenticatedHttpClient() : _storageService = SecureStorageService();
@@ -50,7 +48,7 @@ class AuthenticatedHttpClient {
           return newAccessToken;
       }
     } catch (e) {
-      developer.log("Error refreshing token");
+      rethrow;
     }
 
     return null; 

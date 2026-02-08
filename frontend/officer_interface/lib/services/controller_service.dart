@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:officer_interface/services/authentication%20helpers/authenticated%20_http_client.dart';
+import 'package:officer_interface/SERVICES/CONFIG/api.dart';
+import 'package:officer_interface/SERVICES/authentication%20helpers/authenticated%20_http_client.dart';
 
 class ControllerService {
   static final AuthenticatedHttpClient _httpClient = AuthenticatedHttpClient();
-  static const String _apiRoot = 'https://tps-production-c025.up.railway.app/api';
+  static const String _apiRoot = Api.baseUrl;
 
   static Future<Map<String, dynamic>?> searchActiveSessionByPlate(
     String plate,
@@ -26,7 +27,6 @@ class ControllerService {
         return null;
       }
     } catch (e) {
-      print('Network error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -53,7 +53,6 @@ class ControllerService {
 
       return response.statusCode;
     } catch (e) {
-      print('Report error: $e');
       return 500;
     }
   }
@@ -69,12 +68,11 @@ class ControllerService {
         return data.map((e) => e as Map<String, dynamic>).toList();
       }
     } catch (e) {
-      print("Error fetching violation types: $e");
+      rethrow;
     }
-    
-    // Fallback locale in caso di errore
+
     return [
-      {"name": "Parking Violation", "amount": 50.0},
+      {"name": "General Parking Violation", "amount": 50.0},
     ];
   }
 }

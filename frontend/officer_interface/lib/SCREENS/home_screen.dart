@@ -6,12 +6,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:officer_interface/MAIN%20UTILS/issue_ticket_dialog.dart';
 import 'package:officer_interface/MODELS/parking_session.dart';
-import 'package:officer_interface/services/controller_service.dart';
+import 'package:officer_interface/SERVICES/controller_service.dart';
 
-import 'package:officer_interface/services/shift_service.dart';
+import 'package:officer_interface/SERVICES/shift_service.dart';
 import 'package:officer_interface/SCREENS/start_shift_screen.dart';
 
-import 'package:officer_interface/services/plate_ocr_service.dart';
+import 'package:officer_interface/SERVICES/plate_ocr_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final DateTime? shiftStartTime;

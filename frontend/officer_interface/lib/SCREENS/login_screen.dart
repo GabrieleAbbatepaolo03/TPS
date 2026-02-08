@@ -7,7 +7,7 @@ import 'package:officer_interface/SCREENS/start_shift_screen.dart';
 
 // FIX: Assicurati che questo percorso corrisponda esattamente alla posizione di auth_service.dart
 // Se i tuoi servizi sono in lib/services/auth_service.dart, questa riga è corretta.
-import 'package:officer_interface/services/auth_service.dart'; 
+import 'package:officer_interface/SERVICES/auth_service.dart'; 
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

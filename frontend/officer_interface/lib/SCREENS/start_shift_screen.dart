@@ -3,8 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:officer_interface/MAIN%20UTILS/page_transition.dart';
 import 'package:officer_interface/SCREENS/home_screen.dart';
 import 'package:officer_interface/SCREENS/login_screen.dart';
-import 'package:officer_interface/services/shift_service.dart';
-import 'package:officer_interface/services/auth_service.dart';
+import 'package:officer_interface/SERVICES/shift_service.dart';
+import 'package:officer_interface/SERVICES/auth_service.dart';
 
 class StartShiftScreen extends StatefulWidget {
   const StartShiftScreen({super.key});

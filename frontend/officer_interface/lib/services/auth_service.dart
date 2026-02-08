@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:officer_interface/services/authentication%20helpers/secure_storage_service.dart';
-import 'package:officer_interface/services/user_session.dart';
+import 'package:officer_interface/SERVICES/authentication%20helpers/secure_storage_service.dart';
+import 'package:officer_interface/SERVICES/user_session.dart';
+import 'package:officer_interface/SERVICES/CONFIG/api.dart';
 
 class AuthService {
   static final SecureStorageService _storageService = SecureStorageService();
@@ -12,7 +13,7 @@ class AuthService {
     String requiredRole = 'any',
   }) async {
 
-    final baseUrl = "https://tps-production-c025.up.railway.app/api/users";
+    final baseUrl = Api.users;
 
     try {
       final response = await http.post(

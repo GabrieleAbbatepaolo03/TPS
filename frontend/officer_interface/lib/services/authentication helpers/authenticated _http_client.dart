@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:officer_interface/SERVICES/CONFIG/api.dart';
 import 'secure_storage_service.dart';
 
-const String _authBaseUrl = "https://tps-production-c025.up.railway.app/api/users";
+const String _authBaseUrl = Api.users;
 
 class AuthenticatedHttpClient {
   final SecureStorageService _storageService;

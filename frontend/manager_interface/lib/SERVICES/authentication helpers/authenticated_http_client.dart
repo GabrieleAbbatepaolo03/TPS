@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'secure_storage_service.dart';
+import 'package:manager_interface/SERVICES/CONFIG/api.dart';
 
-const String _authBaseUrl = 'https://tps-production-c025.up.railway.app/api/users'; 
+const String _authBaseUrl = Api.users; 
 
 class AuthenticatedHttpClient {
   final SecureStorageService _storageService;
@@ -23,11 +24,8 @@ class AuthenticatedHttpClient {
   
   Future<String?> _refreshToken() async {
     final refreshToken = await _storageService.getRefreshToken();
-  
-    print('DEBUG REFRESH: Token letto dallo storage: $refreshToken'); 
-    
+
     if (refreshToken == null) {
-        print('DEBUG REFRESH: Token mancante in storage. Ritorno NULL.');
         return null;
     }
 
@@ -40,9 +38,6 @@ class AuthenticatedHttpClient {
           body: json.encode({'refresh': refreshToken}),
       );
 
-      print('DEBUG REFRESH: Server Response Status: ${response.statusCode}');
-      print('DEBUG REFRESH: Server Response Body: ${response.body}');
-
       if (response.statusCode == 200) {
           final data = json.decode(response.body);
           final newAccessToken = data['access'];
@@ -52,17 +47,13 @@ class AuthenticatedHttpClient {
               accessToken: newAccessToken, 
               refreshToken: newRefreshToken,
           );
-          print('DEBUG REFRESH: Refresh SUCCESS. New Access Token saved.');
           return newAccessToken;
-      } else {
-          print('DEBUG REFRESH: Refresh FAILED. Status ${response.statusCode}.');
       }
     } catch (e) {
-        print('DEBUG REFRESH: Network error during refresh attempt: $e');
+      rethrow;
     }
-    
     return null; 
-}
+  }   
 
   Future<http.Response> _sendRequest(
     Uri url, 

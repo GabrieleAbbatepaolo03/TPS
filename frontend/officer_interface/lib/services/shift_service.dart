@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:officer_interface/services/authentication%20helpers/authenticated%20_http_client.dart';
+import 'package:officer_interface/SERVICES/CONFIG/api.dart';
+import 'package:officer_interface/SERVICES/authentication%20helpers/authenticated%20_http_client.dart';
 
 class ShiftInfo {
   final int id;
@@ -43,10 +44,8 @@ class ShiftInfo {
 class ShiftService {
   static final AuthenticatedHttpClient _client = AuthenticatedHttpClient();
 
-  // 
-  static const String _apiRoot = 'https://tps-production-c025.up.railway.app/api';
+  static const String _apiRoot = Api.baseUrl; 
 
-  /// GET /api/users/shifts/current/
   static Future<ShiftInfo?> getCurrentShift() async {
     final url = Uri.parse('$_apiRoot/users/shifts/current/');
     final res = await _client.get(url);
@@ -65,7 +64,6 @@ class ShiftService {
     return ShiftInfo.fromJson(data['shift']);
   }
 
-  /// POST /api/users/shifts/start/
   static Future<ShiftInfo> startShift() async {
     final url = Uri.parse('$_apiRoot/users/shifts/start/');
     final res = await _client.post(url);

@@ -2,9 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:officer_interface/services/controller_service.dart';
+import 'package:officer_interface/SERVICES/controller_service.dart';
 
-// Classe di supporto per restituire i dati al padre
 class TicketData {
   final String reason;
   final String notes;

@@ -1,29 +1,24 @@
 import 'dart:convert';
+import 'package:manager_interface/SERVICES/CONFIG/api.dart';
 import 'package:manager_interface/SERVICES/authentication%20helpers/authenticated_http_client.dart';
 import 'package:http/http.dart' as http;
 import '../models/parking.dart';
 import '../models/spot.dart';
 import '../models/parking_session.dart';
 import 'package:manager_interface/models/city.dart';
-import 'dart:developer' as developer;
 
 class ParkingService {
   static final AuthenticatedHttpClient _httpClient = AuthenticatedHttpClient();
   
-  static const String _apiRoot = 'https://tps-production-c025.up.railway.app/api'; 
+  static const String _apiRoot = Api.baseUrl; 
 
   static Future<List<City>> getCitiesWithCoordinates() async {
-    developer.log('🌐 Fetching authorized cities from: $_apiRoot/cities/authorized/');
     final url = Uri.parse('$_apiRoot/cities/authorized/');
     final response = await _httpClient.get(url);
-
-    developer.log('📥 Response status: ${response.statusCode}');
-    developer.log('📥 Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       final cities = data.map((json) => City.fromJson(json)).toList();
-      developer.log('✅ Loaded ${cities.length} authorized cities');
       return cities;
     } else {
       throw Exception('Failed to load authorized cities: HTTP ${response.statusCode}');
@@ -36,7 +31,7 @@ class ParkingService {
       final List<dynamic> data = json.decode(response.body);
       return data.map((json) => Parking.fromJson(json)).toList();
     } else {
-      throw Exception('Failed to load parkings for city $city: ${response.statusCode}');
+      throw Exception('Failed to load parkings for city $city');
     }
   }
 
@@ -46,7 +41,7 @@ class ParkingService {
       final jsonData = json.decode(response.body);
       return Parking.fromJson(jsonData);
     } else {
-      throw Exception('Failed to load parking $parkingId: ${response.statusCode}');
+      throw Exception('Failed to load parking $parkingId');
     }
   }
 
@@ -56,18 +51,17 @@ class ParkingService {
       final List<dynamic> data = json.decode(response.body);
       return data.map((json) => Spot.fromJson(json)).toList();
     } else {
-      throw Exception('Failed to load spots for parking $parkingId: ${response.statusCode}');
+      throw Exception('Failed to load spots for parking $parkingId');
     }
   }
 
-  // NEW: Get active sessions for Manager
   static Future<List<ParkingSession>> getLiveSessions(int parkingId) async {
     final response = await _httpClient.get(Uri.parse('$_apiRoot/parkings/$parkingId/sessions/'));
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       return data.map((json) => ParkingSession.fromJson(json)).toList();
     } else {
-      throw Exception('Failed to load live sessions: ${response.statusCode}');
+      throw Exception('Failed to load live sessions');
     }
   }
 
@@ -87,7 +81,7 @@ class ParkingService {
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Parking.fromJson(json.decode(response.body));
     } else {
-      throw Exception('Failed to save parking: ${response.statusCode} ${response.body}');
+      throw Exception('Failed to save parking');
     }
   }
 
@@ -97,7 +91,7 @@ class ParkingService {
     if (response.statusCode == 204) {
       return true;
     } else {
-      throw Exception('Failed to delete parking: ${response.statusCode}');
+      throw Exception('Failed to delete parking');
     }
   }
 
@@ -114,7 +108,7 @@ class ParkingService {
     if (response.statusCode == 201 || response.statusCode == 200) {
       return Spot.fromJson(json.decode(response.body));
     } else {
-      throw Exception('Failed to add spot: ${response.body}');
+      throw Exception('Failed to add spot');
     }
   }
 
