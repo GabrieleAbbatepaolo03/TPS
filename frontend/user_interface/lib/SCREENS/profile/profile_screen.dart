@@ -28,6 +28,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Map<String, dynamic>? _userData;
   bool _isLoadingProfile = true;
 
+  // ✅ NEW: Stato per gestire il caricamento durante le azioni sui veicoli (es. togliere preferito)
+  bool _isLoadingAction = false;
+
   bool _isEditing = false;
   bool _isSaving = false;
   late TextEditingController _firstNameController;
@@ -39,6 +42,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _firstNameController = TextEditingController();
     _lastNameController = TextEditingController();
     _loadUserProfile();
+
+    // Forza il refresh della lista veicoli all'apertura del profilo
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(vehicleListProvider);
+    });
   }
 
   @override
@@ -109,23 +117,34 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  void _refreshList(WidgetRef ref) {
-    // ignore: unused_result
-    ref.refresh(vehicleListProvider);
+  Future<void> _refreshList() async {
+    // ref.refresh(provider.future) restituisce il Future dei nuovi dati
+    return ref.refresh(vehicleListProvider.future);
   }
 
-  void _handleToggleFavorite(Vehicle vehicle) async {
+  // ✅ MODIFICATO: Attende il refresh prima di togliere il loader
+  Future<void> _handleToggleFavorite(Vehicle vehicle) async {
+    setState(() => _isLoadingAction = true); // Mostra loader
     try {
+      // 1. Chiamata API per rimuovere/aggiungere preferito
       await _vehicleService.toggleFavorite(
         vehicleId: vehicle.id,
         isFavorite: !vehicle.isFavorite,
       );
-      _refreshList(ref);
+      
+      // 2. IMPORTANTE: Attendiamo che la lista si aggiorni dal server
+      // In questo modo il loader rimane visibile finché i nuovi dati non sono pronti
+      await _refreshList(); 
+
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to update status.')),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingAction = false); // Nascondi loader SOLO ora
       }
     }
   }
@@ -152,15 +171,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-Future<void> _showLogoutDialog() async {
+  Future<void> _showLogoutDialog() async {
     return showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          // Sfondo scuro che si adatta al tema
           backgroundColor: const Color.fromARGB(255, 2, 11, 60),
           elevation: 10,
-          // Bordo arrotondato con linea sottile bianca
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
             side: BorderSide(color: Colors.white.withOpacity(0.1)),
@@ -180,9 +197,9 @@ Future<void> _showLogoutDialog() async {
               fontSize: 14,
             ),
           ),
-          actionsPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          actionsPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           actions: [
-            // Tasto ANNULLA
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
@@ -193,11 +210,10 @@ Future<void> _showLogoutDialog() async {
                 ),
               ),
             ),
-            // Tasto LOGOUT (Rosso)
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Chiude il dialog
-                _handleLogout(); // Esegue il logout
+                Navigator.of(context).pop();
+                _handleLogout();
               },
               style: TextButton.styleFrom(
                 backgroundColor: Colors.redAccent.withOpacity(0.1),
@@ -230,42 +246,39 @@ Future<void> _showLogoutDialog() async {
                 child: CircularProgressIndicator(color: Colors.white),
               )
             : _userData == null
-            ? const Center(
-                child: Text(
-                  'Failed to load profile',
-                  style: TextStyle(color: Colors.red),
-                ),
-              )
-            : RefreshIndicator(
-                onRefresh: _loadUserProfile,
-                color: Colors.black,
-                backgroundColor: Colors.white,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                ? const Center(
+                    child: Text(
+                      'Failed to load profile',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadUserProfile,
+                    color: Colors.black,
+                    backgroundColor: Colors.white,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const PageTitle(title: 'Profile'),
-                          _buildLogoutButton(context),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const PageTitle(title: 'Profile'),
+                              _buildLogoutButton(context),
+                            ],
+                          ),
+                          const SizedBox(height: 30),
+                          _buildUserInfoCard(context),
+                          const SizedBox(height: 30),
+                          _buildFavoriteVehiclesSection(),
+                          const SizedBox(height: 30),
                         ],
                       ),
-                      const SizedBox(height: 30),
-
-                      _buildUserInfoCard(context),
-
-                      const SizedBox(height: 30),
-                      _buildFavoriteVehiclesSection(),
-                      const SizedBox(height: 30),
-                    ],
+                    ),
                   ),
-                ),
-              ),
       ),
     );
   }
@@ -302,7 +315,6 @@ Future<void> _showLogoutDialog() async {
                   ),
                 ],
               ),
-
               IconButton(
                 icon: _isSaving
                     ? const SizedBox(
@@ -330,9 +342,7 @@ Future<void> _showLogoutDialog() async {
               ),
             ],
           ),
-
           const SizedBox(height: 10),
-
           if (_isEditing) ...[
             Row(
               children: [
@@ -358,7 +368,6 @@ Future<void> _showLogoutDialog() async {
               ),
             ),
           ],
-
           const Divider(color: Colors.white24, height: 25),
           _buildInfoRow(IconlyLight.message, 'Email', email),
           const Divider(color: Colors.white24, height: 25),
@@ -404,49 +413,57 @@ Future<void> _showLogoutDialog() async {
         ),
         const SizedBox(height: 15),
 
-        vehiclesAsync.when(
-          loading: () => const Center(
-            child: CircularProgressIndicator(color: Colors.white54),
-          ),
-          error: (err, stack) => Text(
-            'Error loading vehicles',
-            style: TextStyle(color: Colors.redAccent),
-          ),
-          data: (allVehicles) {
-            // Filtra solo i preferiti
-            final favoriteVehicles = allVehicles
-                .where((v) => v.isFavorite)
-                .toList();
+        // ✅ LOGIC: Se stiamo caricando (es. dopo toggle favorite), mostriamo il loader AL POSTO della lista
+        if (_isLoadingAction)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 20.0),
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
+          )
+        else
+          vehiclesAsync.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: Colors.white54),
+            ),
+            error: (err, stack) => Text(
+              'Error loading vehicles',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+            data: (allVehicles) {
+              // Filtra solo i preferiti
+              final favoriteVehicles =
+                  allVehicles.where((v) => v.isFavorite).toList();
 
-            if (favoriteVehicles.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  'No favorite vehicles selected.',
-                  style: GoogleFonts.poppins(
-                    color: Colors.white54,
-                    fontSize: 14,
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              children: favoriteVehicles
-                  .map(
-                    (vehicle) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: VehicleCard(
-                        vehicle: vehicle,
-                        onDelete: null,
-                        onFavoriteToggle: () => _handleToggleFavorite(vehicle),
-                      ),
+              if (favoriteVehicles.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    'No favorite vehicles selected.',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white54,
+                      fontSize: 14,
                     ),
-                  )
-                  .toList(),
-            );
-          },
-        ),
+                  ),
+                );
+              }
+
+              return Column(
+                children: favoriteVehicles
+                    .map(
+                      (vehicle) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: VehicleCard(
+                          vehicle: vehicle,
+                          onDelete: null,
+                          onFavoriteToggle: () => _handleToggleFavorite(vehicle),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              );
+            },
+          ),
       ],
     );
   }
@@ -485,7 +502,7 @@ Future<void> _showLogoutDialog() async {
     );
   }
 
-Widget _buildLogoutButton(BuildContext context) {
+  Widget _buildLogoutButton(BuildContext context) {
     return TextButton.icon(
       icon: const Icon(IconlyLight.logout, color: Colors.redAccent, size: 20),
       label: Text(
@@ -504,9 +521,7 @@ Widget _buildLogoutButton(BuildContext context) {
           side: BorderSide(color: Colors.redAccent.withOpacity(0.8), width: 1),
         ),
       ),
-      // MODIFICA QUI: Chiama il dialog invece del logout diretto
-      onPressed: _showLogoutDialog, 
+      onPressed: _showLogoutDialog,
     );
   }
 }
-

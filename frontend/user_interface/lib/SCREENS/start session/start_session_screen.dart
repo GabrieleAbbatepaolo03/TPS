@@ -4,7 +4,6 @@ import 'package:iconly/iconly.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:user_interface/MAIN%20UTILS/page_transition.dart';
 import 'package:intl/intl.dart';
-
 import 'package:user_interface/MODELS/parking.dart';
 import 'package:user_interface/MODELS/vehicle.dart';
 import 'package:user_interface/SCREENS/root_screen.dart';
@@ -12,12 +11,10 @@ import 'package:user_interface/SCREENS/start%20session/parking_cost_calculator.d
 import 'package:user_interface/SERVICES/vehicle_service.dart';
 import 'package:user_interface/SERVICES/parking_session_service.dart';
 import 'package:user_interface/MAIN UTILS/app_theme.dart';
-
 import 'package:user_interface/STATE/payment_state.dart';
 import 'package:user_interface/STATE/parking_session_state.dart';
-
-// ✅ NEW: Choose payment method screen (single page)
 import 'package:user_interface/SCREENS/payment/choose_payment_method_screen.dart';
+import 'package:user_interface/MAIN%20UTILS/DIALOGS/add_vehicle_dialog.dart';
 
 enum StartSessionConfirmAction { cancel, changeMethod, confirm }
 
@@ -33,12 +30,9 @@ class StartSessionScreen extends ConsumerStatefulWidget {
 class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
   final VehicleService _vehicleService = VehicleService();
   final ParkingSessionService _sessionService = ParkingSessionService();
-
   late Future<List<Vehicle>> _vehiclesFuture;
   Vehicle? _selectedVehicle;
   bool _isLoading = false;
-
-  // Stato gestione durata
   int _selectedDurationMinutes = 60;
   double _prepaidCost = 0.0;
   DateTime _plannedEndTime = DateTime.now();
@@ -52,32 +46,25 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
       });
     }
     _vehiclesFuture = _vehicleService.fetchMyVehicles();
-
-    // 🚨 SE FLAT RATE: Imposta default a 24h (1440 min)
     if (widget.parkingLot.tariffConfig.type == 'FIXED_DAILY') {
       _selectedDurationMinutes = 1440;
     }
-
     _recalculateAll();
   }
 
   void _recalculateAll() {
     final config = widget.parkingLot.tariffConfig;
     final calculator = CostCalculator(config);
-
     final double durationHours = _selectedDurationMinutes / 60.0;
     final double cost = calculator.calculateCostForHours(durationHours);
-
     final DateTime now = DateTime.now();
     final DateTime end = now.add(Duration(minutes: _selectedDurationMinutes));
-
     setState(() {
       _prepaidCost = cost;
       _plannedEndTime = end;
     });
   }
 
-  // Usato per tariffa oraria
   void _adjustDuration(int deltaMinutes) {
     setState(() {
       _selectedDurationMinutes += deltaMinutes;
@@ -87,17 +74,14 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
     _recalculateAll();
   }
 
-  // 🚨 Usato per tariffa Fixed Daily (+/- Giorni)
   void _adjustDays(int deltaDays) {
     setState(() {
       int currentDays = _selectedDurationMinutes ~/ 1440;
       if (currentDays == 0) currentDays = 1;
-
       int newDays = currentDays + deltaDays;
       if (newDays < 1) newDays = 1;
-      if (newDays > 30) newDays = 30; // Max 30 giorni
-
-      _selectedDurationMinutes = newDays * 1440; // Blocchi da 24h
+      if (newDays > 30) newDays = 30; 
+      _selectedDurationMinutes = newDays * 1440; 
     });
     _recalculateAll();
   }
@@ -160,33 +144,13 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: GoogleFonts.poppins(color: Colors.white70)),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _startSession() async {
     if (_selectedVehicle == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a vehicle first.')),
+        const SnackBar(content: Text('Please select a vehicle first.'), backgroundColor: Colors.redAccent),
       );
       return;
     }
-
     String durationStr;
     if (widget.parkingLot.tariffConfig.type == 'FIXED_DAILY') {
       int days = _selectedDurationMinutes ~/ 1440;
@@ -196,8 +160,6 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
       final int m = _selectedDurationMinutes % 60;
       durationStr = '${h}h ${m}m';
     }
-
-    // ✅ Scenario A: First time only -> choose default payment method
     final payState = ref.read(paymentProvider);
     if (!payState.hasDefaultMethod) {
       final chosen = await Navigator.of(context).push<bool>(
@@ -205,14 +167,11 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
       );
       if (chosen != true) return;
     }
-
-    // ✅ Confirm dialog with "Pay with ..." + Change method
     while (true) {
       final payLabel = ref.read(paymentProvider).defaultMethodLabel;
       final String endTimeStr = DateFormat(
         'dd MMM yyyy, HH:mm',
       ).format(_plannedEndTime);
-
       final action = await showDialog<StartSessionConfirmAction>(
         context: context,
         builder: (context) => AlertDialog(
@@ -265,8 +224,6 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-
-                // Full-width Change method button (giallo)
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
@@ -286,7 +243,6 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 10),
                 Text(
                   'This amount is non-refundable.',
@@ -347,19 +303,13 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
         final changed = await Navigator.of(context).push<bool>(
           MaterialPageRoute(builder: (_) => const ChoosePaymentMethodScreen()),
         );
-        // If user changed, loop again to refresh label; if they backed out, just loop.
         if (changed == true) continue;
         continue;
       }
-
-      // confirm
       break;
     }
-
     setState(() => _isLoading = true);
-
     final paymentNotifier = ref.read(paymentProvider.notifier);
-    // await paymentNotifier.charge(_prepaidCost);
     await paymentNotifier.charge(_prepaidCost, reason: 'Start Session');
 
     final session = await _sessionService.startSession(
@@ -368,7 +318,6 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
       durationMinutes: _selectedDurationMinutes,
       prepaidCost: _prepaidCost,
     );
-
     if (mounted) {
       if (session != null) {
         ref
@@ -393,118 +342,15 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
     setState(() => _isLoading = false);
   }
 
-  Widget _buildSessionSummary(String durationStr, String endTimeStr) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white10,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Parcheggio
-          Row(
-            children: [
-              const Icon(Icons.location_on, color: Colors.amber, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.parkingLot.name,
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      widget.parkingLot.address,
-                      style: GoogleFonts.poppins(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // Veicolo
-          Row(
-            children: [
-              const Icon(Icons.directions_car, color: Colors.white70, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '${_selectedVehicle?.plate ?? '—'} • ${_selectedVehicle?.name ?? ''}',
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // Durata + Fine
-          Row(
-            children: [
-              const Icon(Icons.access_time, color: Colors.white70, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      durationStr,
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Ends: $endTimeStr',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Totale
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Total',
-                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13),
-              ),
-              Text(
-                '€${_prepaidCost.toStringAsFixed(2)}',
-                style: GoogleFonts.poppins(
-                  color: Colors.greenAccent,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+  Future<void> _handleAddVehicle() async {
+    final newVehicle = await showAddVehicleDialog(context);
+    
+    if (newVehicle != null) {
+      setState(() {
+        _vehiclesFuture = _vehicleService.fetchMyVehicles();
+        _selectedVehicle = null; 
+      });
+    }
   }
 
   @override
@@ -531,11 +377,9 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
                     children: [
                       _buildParkingDetails(),
                       const SizedBox(height: 20),
-
                       isFixedDaily
                           ? _buildDailyDurationSelector()
                           : _buildPrecisionDurationSelector(),
-
                       const SizedBox(height: 20),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -843,8 +687,6 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
             ],
           ),
           const Divider(color: Colors.white12, height: 30),
-
-          // 1. Controlli Principali
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -900,10 +742,7 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
               ),
             ],
           ),
-
           const SizedBox(height: 15),
-
-          // 2. Slider
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               trackHeight: 6,
@@ -917,7 +756,6 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
               min: 1,
               max: 1440,
               divisions: 1440,
-              //divisions: (1440 - 10) ~/ 10,
               onChanged: (val) {
                 setState(() {
                   _selectedDurationMinutes = val.toInt();
@@ -926,10 +764,7 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
               },
             ),
           ),
-
           const SizedBox(height: 10),
-
-          // 3. Bottoni Rapidi (2 Righe)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1052,8 +887,68 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
     return FutureBuilder<List<Vehicle>>(
       future: _vehiclesFuture,
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const SizedBox.shrink();
+        if (!snapshot.hasData) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20.0),
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
+          );
+        }
         final vehicles = snapshot.data!;
+        if (vehicles.isEmpty) {
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.amber.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.amber.withOpacity(0.3)),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  "No Vehicles Found",
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  "To start a session, you must add a vehicle first.",
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    color: Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _handleAddVehicle,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    icon: const Icon(Icons.add),
+                    label: Text(
+                      "Add Vehicle",
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                )
+              ],
+            ),
+          );
+        }
 
         if (_selectedVehicle == null && vehicles.isNotEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1155,6 +1050,133 @@ class _StartSessionScreenState extends ConsumerState<StartSessionScreen> {
                   ),
                 ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: GoogleFonts.poppins(color: Colors.white70)),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSessionSummary(String durationStr, String endTimeStr) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white10,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Parcheggio
+          Row(
+            children: [
+              const Icon(Icons.location_on, color: Colors.amber, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.parkingLot.name,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.parkingLot.address,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.directions_car, color: Colors.white70, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${_selectedVehicle?.plate ?? '—'} • ${_selectedVehicle?.name ?? ''}',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.access_time, color: Colors.white70, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      durationStr,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Ends: $endTimeStr',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Total',
+                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13),
+              ),
+              Text(
+                '€${_prepaidCost.toStringAsFixed(2)}',
+                style: GoogleFonts.poppins(
+                  color: Colors.greenAccent,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
