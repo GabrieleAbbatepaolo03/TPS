@@ -11,8 +11,6 @@ class GlobalSettings(models.Model):
     max_violations = models.IntegerField(default=3, help_text="Soglia Ban")
     grace_period_minutes = models.IntegerField(default=15, help_text="Tolleranza")
 
-    # CAMPO DINAMICO JSON
-    # Qui salviamo la lista. Esempio: [{"name": "Divieto", "amount": 50}, ...]
     violation_config = models.JSONField(
         default=list, 
         blank=True,

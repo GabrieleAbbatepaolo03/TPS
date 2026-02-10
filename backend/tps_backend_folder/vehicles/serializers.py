@@ -40,13 +40,13 @@ class ParkingSessionSerializer(serializers.ModelSerializer):
             'start_time', 'end_time', 'is_active', 'total_cost',
             'planned_end_time', 'is_expired', 'expired_at', 
             'duration_purchased_minutes', 'prepaid_cost',
-            'grace_period_minutes' # <--- FONDAMENTALE: Aggiunto alla lista dei campi
+            'grace_period_minutes' 
         ]
         
         read_only_fields = [
             'id', 'vehicle', 'parking_lot', 'start_time', 'end_time', 
             'is_active', 'total_cost', 'planned_end_time', 'is_expired', 'expired_at',
-            'grace_period_minutes' # È in sola lettura (calcolato dal server)
+            'grace_period_minutes' 
         ]
 
     # Metodo per recuperare il valore dinamico dalle impostazioni globali

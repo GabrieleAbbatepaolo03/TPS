@@ -167,11 +167,11 @@ class CustomUserAdmin(BaseUserAdmin, ModelAdmin):
     
     def get_cities_display(self, obj):
         if obj.is_superuser:
-            return "🌍 ALL (Superuser)"
+            return "ALL (Superuser)"
         if obj.role not in ['manager', 'controller']:
             return "-"
         if not obj.allowed_cities:
-            return "⚠️ Unassigned"
+            return "Unassigned"
         return ", ".join(obj.allowed_cities)
     get_cities_display.short_description = "Jurisdiction"
 
