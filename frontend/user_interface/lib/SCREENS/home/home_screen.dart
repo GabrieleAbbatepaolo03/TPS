@@ -166,32 +166,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
-  Future<void> _loadParkingLots() async {
-    try {
-      final lotsData = await _parkingService.fetchAllParkingLots();
-      if (!mounted) return;
-      setState(() {
-        _parkingLots = lotsData;
-      });
-      _filterAndDisplayParkings();
-    } catch (e) {
-      print('Error loading parking lots: $e');
-    }
-  }
-
-  void _applySearchFilter(List<Parking> sourceLots) {
-    if (!mounted) return;
-    if (_searchQuery.isEmpty) {
-      _filteredParkingLots = sourceLots;
-    } else {
-      final lowerCaseQuery = _searchQuery.toLowerCase();
-      _filteredParkingLots = sourceLots.where((lot) {
-        return lot.name.toLowerCase().contains(lowerCaseQuery) ||
-            lot.city.toLowerCase().contains(lowerCaseQuery) ||
-            lot.address.toLowerCase().contains(lowerCaseQuery);
-      }).toList();
-    }
-  }
+  
 
   Future<void> _getUserLocation() async {
     try {
@@ -286,14 +261,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  Future<void> _loadParkingLots() async {
+    try {
+      final lotsData = await _parkingService.fetchLiteParkings();
+      if (!mounted) return;
+      setState(() {
+        _parkingLots = lotsData;
+      });
+      _filterAndDisplayParkings();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> _onParkingSelected(Parking lot) async {
+    setState(() => _selectedLot = lot);
+
+    final LatLng lotPosition = LatLng(
+      lot.markerLatitude ?? lot.latitude ?? 0.0,
+      lot.markerLongitude ?? lot.longitude ?? 0.0,
+    );
+
+    _mapController?.animateCamera(
+      CameraUpdate.newLatLng(lotPosition),
+    );
+
+    try {
+      final fullDetails = await _parkingService.fetchParkingDetails(lot.id);
+      if (mounted && _selectedLot?.id == lot.id) {
+        setState(() {
+          _selectedLot = fullDetails;
+        });
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  void _applySearchFilter(List<Parking> sourceLots) {
+    if (!mounted) return;
+    if (_searchQuery.isEmpty) {
+      _filteredParkingLots = sourceLots;
+    } else {
+      final lowerCaseQuery = _searchQuery.toLowerCase();
+      _filteredParkingLots = sourceLots.where((lot) {
+        return lot.name.toLowerCase().contains(lowerCaseQuery) ||
+            lot.city.toLowerCase().contains(lowerCaseQuery) ||
+            lot.address.toLowerCase().contains(lowerCaseQuery);
+      }).toList();
+    }
+  }
+
   void _filterAndDisplayParkings() {
     if (!mounted) return;
     final Set<Marker> newMarkers = {};
     final Set<Polygon> newPolygons = {};
-    
-    // Get current theme state for polygon colors
+
     final isDarkMode = ref.read(mapStyleProvider);
-    
+
     if (_locationAccessGranted) {
       newMarkers.add(
         Marker(
@@ -322,31 +347,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         lot.markerLatitude ?? lot.latitude ?? 0.0,
         lot.markerLongitude ?? lot.longitude ?? 0.0,
       );
-      
+
       newMarkers.add(
         Marker(
           markerId: MarkerId(lot.id.toString()),
           position: lotPosition,
-          icon: _parkingMarkerIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-          onTap: () {
-            setState(() => _selectedLot = lot);
-            _mapController?.animateCamera(
-              CameraUpdate.newLatLng(lotPosition),
-            );
-          },
+          icon: _parkingMarkerIcon ??
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          onTap: () => _onParkingSelected(lot),
         ),
       );
 
-      // Add polygon if coordinates exist with theme-aware colors
       if (lot.polygonCoords.isNotEmpty) {
         final polygonPoints = lot.polygonCoords
             .map((coord) => LatLng(coord.lat, coord.lng))
             .toList();
 
-        // Theme-aware colors
         final strokeColor = isDarkMode ? Colors.greenAccent : Colors.indigo;
-        final fillColor = isDarkMode 
-            ? Colors.greenAccent.withOpacity(0.2) 
+        final fillColor = isDarkMode
+            ? Colors.greenAccent.withOpacity(0.2)
             : Colors.indigoAccent.withOpacity(0.15);
 
         newPolygons.add(
@@ -357,12 +376,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             strokeWidth: 2,
             fillColor: fillColor,
             consumeTapEvents: true,
-            onTap: () {
-              setState(() => _selectedLot = lot);
-              _mapController?.animateCamera(
-                CameraUpdate.newLatLng(lotPosition),
-              );
-            },
+            onTap: () => _onParkingSelected(lot),
           ),
         );
       }
@@ -543,14 +557,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text(
-                                        'Available spots: ${_selectedLot!.availableSpots}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
+                                      if (!_selectedLot!.isDetailsLoaded)
+                                        const SizedBox(
+                                          width: 16, height: 16, 
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                                        )
+                                      else
+                                        Text(
+                                          'Available spots: ${_selectedLot!.availableSpots}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
-                                      ),
                                     ],
                                   ),
                                 ),

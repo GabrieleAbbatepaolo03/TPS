@@ -14,7 +14,38 @@ class ParkingEntranceSerializer(serializers.ModelSerializer):
         model = ParkingEntrance
         fields = ['id', 'address_line', 'latitude', 'longitude']
 
+class ParkingMapSerializer(serializers.ModelSerializer):
+    polygon_coords = serializers.SerializerMethodField()
+    marker_latitude = serializers.SerializerMethodField()
+    marker_longitude = serializers.SerializerMethodField()
 
+    class Meta:
+        model = Parking
+        fields = [
+            'id', 
+            'name', 
+            'city', 
+            'address', 
+            'latitude', 
+            'longitude', 
+            'marker_latitude', 
+            'marker_longitude',
+            'polygon_coords', 
+        ]
+
+    def get_polygon_coords(self, obj):
+        return obj.get_polygon_coords()
+
+    def get_marker_latitude(self, obj):
+        if obj.latitude: return obj.latitude
+        lat, _ = obj.get_marker_position()
+        return lat
+
+    def get_marker_longitude(self, obj):
+        if obj.longitude: return obj.longitude
+        _, lng = obj.get_marker_position()
+        return lng
+    
 class ParkingSerializer(serializers.ModelSerializer):
     total_spots = serializers.IntegerField(read_only=True, source='annotated_total_spots')
     occupied_spots = serializers.IntegerField(read_only=True, source='annotated_occupied_spots')

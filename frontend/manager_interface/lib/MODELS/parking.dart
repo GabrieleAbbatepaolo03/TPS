@@ -77,23 +77,35 @@ class Parking {
       name: json['name'],
       city: json['city'],
       address: json['address'],
-      ratePerHour: double.parse(json['rate_per_hour'].toString()),
+      
+      // MODIFICA 1: Gestione sicura di rate_per_hour (può mancare nella map view)
+      ratePerHour: double.tryParse(json['rate_per_hour']?.toString() ?? '') ?? 0.0,
+      
       markerLatitude: json['marker_latitude']?.toDouble(),
       markerLongitude: json['marker_longitude']?.toDouble(),
+      
       polygonCoords: (json['polygon_coords'] as List<dynamic>?)
               ?.map((e) => ParkingCoordinate.fromJson(e))
               .toList() ??
           [],
+          
       entrances: (json['entrances'] as List<dynamic>?)
               ?.map((e) => ParkingEntrance.fromJson(e))
               .toList() ??
           [],
+          
       latitude: json['latitude']?.toDouble(),
       longitude: json['longitude']?.toDouble(),
+      
+      // MODIFICA 2: Default a 0 se i dati statistici non sono inviati
       totalSpots: json['total_spots'] ?? 0,
       occupiedSpots: json['occupied_spots'] ?? 0,
       todayEntries: json['today_entries'] ?? 0,
-      todayRevenue: double.parse(json['today_revenue']?.toString() ?? '0.0'),
+      
+      // MODIFICA 3: Parsing sicuro per revenue (evita crash su null o stringhe vuote)
+      todayRevenue: double.tryParse(json['today_revenue']?.toString() ?? '') ?? 0.0,
+      
+      // Il costruttore gestisce già il null per questo campo
       tariffConfigJson: json['tariff_config_json'],
     );
   }

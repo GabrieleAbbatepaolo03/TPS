@@ -25,6 +25,20 @@ class ParkingService {
     }
   }
 
+  static Future<List<Parking>> getParkingsForMap(String city) async {
+    final url = Uri.parse('$_apiRoot/parkings/search_map/?city=$city');
+    final response = await _httpClient.get(url);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((json) {
+        return Parking.fromJson(json); 
+      }).toList();
+    } else {
+      throw Exception('Failed to load map parkings for city $city');
+    }
+  }
+
   static Future<List<Parking>> getParkingsByCity(String city) async {
     final response = await _httpClient.get(Uri.parse('$_apiRoot/parkings/?city=$city'));
     if (response.statusCode == 200) {

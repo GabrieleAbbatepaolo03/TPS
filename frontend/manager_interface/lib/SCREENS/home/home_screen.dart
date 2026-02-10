@@ -9,13 +9,13 @@ import 'package:manager_interface/MAIN%20UTILS/search_bar_widget.dart';
 import 'package:manager_interface/SCREENS/parking%20detail/parking_detail_screen.dart';
 import 'package:manager_interface/models/parking.dart';
 import 'package:manager_interface/SCREENS/home/utils/parking_card.dart';
-import '../../services/parking_service.dart';
 import 'package:manager_interface/SERVICES/auth_service.dart';
 import 'package:manager_interface/SCREENS/login_screen.dart';
 import 'package:manager_interface/models/city.dart';
 
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
+import 'package:manager_interface/services/parking_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -204,19 +204,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      final parkings = await ParkingService.getParkingsByCity(city);
+      final parkings = await ParkingService.getParkingsForMap(city);
 
       final newMarkers = <Marker>{};
       final newPolygons = <Polygon>{};
 
       for (var p in parkings) {
-        // Add marker - either from markerLatitude/Longitude OR from latitude/longitude
         LatLng? markerPosition;
-        
         if (p.markerLatitude != null && p.markerLongitude != null) {
           markerPosition = LatLng(p.markerLatitude!, p.markerLongitude!);
         } else if (p.latitude != null && p.longitude != null) {
-          // Fallback to center coordinates if no marker position
           markerPosition = LatLng(p.latitude!, p.longitude!);
         }
 

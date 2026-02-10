@@ -9,7 +9,7 @@ from decimal import Decimal
 from datetime import timedelta
 from django.utils import timezone
 from .models import Parking, Spot, City
-from .serializers import ParkingSerializer, SpotSerializer, CitySerializer
+from .serializers import ParkingMapSerializer, ParkingSerializer, SpotSerializer, CitySerializer
 from vehicles.models import ParkingSession
 from vehicles.serializers import ParkingSessionSerializer
 from rest_framework.permissions import IsAuthenticated
@@ -112,6 +112,22 @@ class ParkingViewSet(viewsets.ModelViewSet):
         serializer = ParkingSessionSerializer(sessions, many=True)
         return Response(serializer.data)
     
+    @action(detail=False, methods=['get'])
+    def search_map(self, request):
+        user = self.request.user
+        city_param = self.request.query_params.get('city')
+        queryset = Parking.objects.all().defer('tariff_config_json') 
+        if not user.is_superuser and hasattr(user, 'role') and (user.role == 'manager'):
+            allowed = getattr(user, 'allowed_cities', [])
+            if allowed:
+                queryset = queryset.filter(city__in=allowed)
+            else:
+                return Response([])
+        if city_param:
+            queryset = queryset.filter(city__icontains=city_param)
+        serializer = ParkingMapSerializer(queryset, many=True)
+        return Response(serializer.data)
+
 
 class SpotViewSet(viewsets.ModelViewSet):
     serializer_class = SpotSerializer

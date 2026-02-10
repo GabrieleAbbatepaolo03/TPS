@@ -1,3 +1,5 @@
+// user_interface/MODELS/parking.dart
+
 import 'dart:convert';
 import 'tariff_config.dart';
 
@@ -24,6 +26,9 @@ class Parking {
   
   final String tariffConfigJson;
 
+  // Added flag to check if details are loaded
+  final bool isDetailsLoaded; 
+
   Parking({
     required this.id,
     required this.name,
@@ -41,6 +46,7 @@ class Parking {
     required this.todayEntries,
     required this.todayRevenue,
     String? tariffConfigJson,
+    this.isDetailsLoaded = true, // Default true for legacy compatibility
   }) : tariffConfigJson = tariffConfigJson ?? defaultTariffConfig.toJson();
 
   static TariffConfig get defaultTariffConfig => TariffConfig(
@@ -61,7 +67,6 @@ class Parking {
     }
   }
 
-  /// Returns the display rate based on tariff type
   double get displayRate {
     final config = tariffConfig;
     if (config.type == 'FIXED_DAILY') {
@@ -72,14 +77,21 @@ class Parking {
   }
 
   factory Parking.fromJson(Map<String, dynamic> json) {
+    // Check if this is a "Lite" response (missing heavyweight fields)
+    final bool isLite = json['total_spots'] == null;
+
     return Parking(
       id: json['id'],
       name: json['name'],
-      city: json['city'],
-      address: json['address'],
-      ratePerHour: double.parse(json['rate_per_hour'].toString()),
+      city: json['city'] ?? '',
+      address: json['address'] ?? '',
+      
+      // Use tryParse to handle missing fields safely
+      ratePerHour: double.tryParse(json['rate_per_hour']?.toString() ?? '') ?? 0.0,
+      
       markerLatitude: json['marker_latitude']?.toDouble(),
       markerLongitude: json['marker_longitude']?.toDouble(),
+      
       polygonCoords: (json['polygon_coords'] as List<dynamic>?)
               ?.map((e) => ParkingCoordinate.fromJson(e))
               .toList() ??
@@ -88,16 +100,27 @@ class Parking {
               ?.map((e) => ParkingEntrance.fromJson(e))
               .toList() ??
           [],
+          
       latitude: json['latitude']?.toDouble(),
       longitude: json['longitude']?.toDouble(),
+      
+      // Default to 0 if data is missing (Lite mode)
       totalSpots: json['total_spots'] ?? 0,
       occupiedSpots: json['occupied_spots'] ?? 0,
       todayEntries: json['today_entries'] ?? 0,
-      todayRevenue: double.parse(json['today_revenue']?.toString() ?? '0.0'),
+      todayRevenue: double.tryParse(json['today_revenue']?.toString() ?? '') ?? 0.0,
+      
       tariffConfigJson: json['tariff_config_json'],
+      isDetailsLoaded: !isLite, // Set false if essential data is missing
     );
   }
+  
+  // Helper to merge full details into a lite object
+  Parking copyWithDetails(Parking fullDetails) {
+    return fullDetails; 
+  }
 
+  // ... toJson and getters remain the same ...
   Map<String, dynamic> toJson() {
     return {
       if (id != 0) 'id': id,
@@ -116,19 +139,12 @@ class Parking {
   int get availableSpots => totalSpots - occupiedSpots;
 }
 
+// ... ParkingCoordinate and ParkingEntrance classes remain same ...
 class ParkingCoordinate {
   final double lat;
   final double lng;
-
   ParkingCoordinate({required this.lat, required this.lng});
-
-  factory ParkingCoordinate.fromJson(Map<String, dynamic> json) {
-    return ParkingCoordinate(
-      lat: json['lat'].toDouble(),
-      lng: json['lng'].toDouble(),
-    );
-  }
-
+  factory ParkingCoordinate.fromJson(Map<String, dynamic> json) => ParkingCoordinate(lat: json['lat'].toDouble(), lng: json['lng'].toDouble());
   Map<String, dynamic> toJson() => {'lat': lat, 'lng': lng};
 }
 
@@ -137,20 +153,6 @@ class ParkingEntrance {
   final String addressLine;
   final double latitude;
   final double longitude;
-
-  ParkingEntrance({
-    required this.id,
-    required this.addressLine,
-    required this.latitude,
-    required this.longitude,
-  });
-
-  factory ParkingEntrance.fromJson(Map<String, dynamic> json) {
-    return ParkingEntrance(
-      id: json['id'],
-      addressLine: json['address_line'],
-      latitude: json['latitude'].toDouble(),
-      longitude: json['longitude'].toDouble(),
-    );
-  }
+  ParkingEntrance({required this.id, required this.addressLine, required this.latitude, required this.longitude});
+  factory ParkingEntrance.fromJson(Map<String, dynamic> json) => ParkingEntrance(id: json['id'], addressLine: json['address_line'], latitude: json['latitude'].toDouble(), longitude: json['longitude'].toDouble());
 }

@@ -8,6 +8,42 @@ final String _baseUrl = '${Api.baseUrl}/parkings/';
 class ParkingApiService {
   final AuthenticatedHttpClient _httpClient = AuthenticatedHttpClient();
 
+  Future<List<Parking>> fetchLiteParkings({String? city}) async {
+    try {
+      String url = '${_baseUrl}search_map/';
+      if (city != null && city.isNotEmpty) {
+        url += '?city=$city';
+      }
+      
+      final response = await _httpClient.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = json.decode(response.body);
+        return jsonList
+            .map((json) => Parking.fromJson(json as Map<String, dynamic>))
+            .toList();
+      } else {
+        throw Exception('Failed to load map data');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Parking> fetchParkingDetails(int id) async {
+    try {
+      final response = await _httpClient.get(Uri.parse('$_baseUrl$id/'));
+      
+      if (response.statusCode == 200) {
+        return Parking.fromJson(json.decode(response.body));
+      } else {
+        throw Exception('Failed to load parking details');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<List<Parking>> fetchAllParkingLots() async {
     try {
       final response = await _httpClient.get(Uri.parse(_baseUrl));

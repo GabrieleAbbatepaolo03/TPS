@@ -3,8 +3,8 @@ import time
 import statistics
 
 # --- CONFIG ---
-BASE_URL = "https://tps-production-c025.up.railway.app"
-# BASE_URL = "http://localhost:8000"
+#BASE_URL = "https://tps-production-c025.up.railway.app"
+BASE_URL = "http://localhost:8000"
 LOGIN_ENDPOINT = "/api/users/token/user/"
 BENCH_ENDPOINT = "/api/parkings/"
 USERNAME = "admin@admin.com"
@@ -28,7 +28,7 @@ def measure(limit, token):
     times = []
     for _ in range(ITERATIONS):
         start = time.time()
-        r = requests.get(f"{BASE_URL}{BENCH_ENDPOINT}?limit={limit}", headers=headers) 
+        r = requests.get(f"{BASE_URL}{BENCH_ENDPOINT}search_map/?city=0_TEST_CITY", headers=headers) 
         elapsed = time.time() - start
         times.append(elapsed)
         if r.status_code != 200:
