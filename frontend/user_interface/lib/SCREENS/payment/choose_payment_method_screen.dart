@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconly/iconly.dart';
-
+import 'dart:io';
 import 'package:user_interface/STATE/payment_state.dart';
 import 'package:user_interface/SCREENS/dashboard/dashboard_pages/payments_method_page/payment_methods_page.dart';
 import 'package:user_interface/MAIN UTILS/app_theme.dart';
@@ -120,22 +120,27 @@ class _ChoosePaymentMethodScreenState
                   style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 12),
-                _MethodTile(
-                  title: 'Apple Pay',
-                  subtitle: 'Fast • Secure • No card details stored',
-                  icon: IconlyBold.wallet,
-                  selected: _selectedType == 'apple_pay',
-                  onTap: () => _select('apple_pay'),
-                ),
-                const SizedBox(height: 10),
-                _MethodTile(
-                  title: 'Google Pay',
-                  subtitle: 'Fast • Secure • No card details stored',
-                  icon: IconlyBold.wallet,
-                  selected: _selectedType == 'google_pay',
-                  onTap: () => _select('google_pay'),
-                ),
-                const SizedBox(height: 10),
+                if (Platform.isIOS) ...[
+                  _MethodTile(
+                    title: 'Apple Pay',
+                    subtitle: 'Fast • Secure • No card details stored',
+                    icon: IconlyBold.wallet,
+                    selected: _selectedType == 'apple_pay',
+                    onTap: () => _select('apple_pay'),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+
+                if (Platform.isAndroid) ...[
+                  _MethodTile(
+                    title: 'Google Pay',
+                    subtitle: 'Fast • Secure • No card details stored',
+                    icon: IconlyBold.wallet,
+                    selected: _selectedType == 'google_pay', 
+                    onTap: () => _select('google_pay'),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 _MethodTile(
                   title: 'Credit / Debit Card',
                   subtitle: pay.hasMethod
