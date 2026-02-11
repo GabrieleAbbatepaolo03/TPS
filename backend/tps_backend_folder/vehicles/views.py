@@ -166,38 +166,53 @@ class ParkingSessionViewSet(viewsets.ModelViewSet):
         if not plate:
             return Response({"detail": "Plate parameter is required."}, status=400)
 
-        if not Vehicle.objects.filter(plate__iexact=plate).exists():
-            return Response({"detail": "Vehicle not registered."}, status=status.HTTP_404_NOT_FOUND)
-
-        sessions = ParkingSession.objects.filter(vehicle__plate__iexact=plate).order_by('-start_time')
+        sessions = ParkingSession.objects.filter(
+            vehicle__plate__iexact=plate
+        ).order_by('-start_time')
 
         if not sessions.exists():
             return Response({
                 "status": "no_session",
                 "can_issue_ticket": True,
-                "message": f"Vehicle registered but no active session found.",
+                "message": f"No session found for {plate}. Issue Ticket?",
                 "session_data": None
             }, status=200)
 
         session = sessions.first()
+        
         session_data = ParkingSessionSerializer(session).data
-
+        
         now = timezone.now()
         grace_minutes = getattr(session, 'grace_period_minutes', 5)
 
+        reference_time = None
+        
         if session.planned_end_time:
             if session.end_time:
-                reference_time = session.planned_end_time if session.end_time > session.planned_end_time else session.end_time
+                if session.end_time > session.planned_end_time:
+                    reference_time = session.planned_end_time
+                else:
+                    reference_time = session.end_time
             else:
+
                 reference_time = session.planned_end_time
         else:
-            reference_time = session.end_time if session.end_time else now
+            if session.end_time:
+                reference_time = session.end_time
+            else:
+
+                reference_time = now 
 
         grace_end_time_utc = reference_time + timedelta(minutes=grace_minutes)
+
         grace_end_time_local_str = timezone.localtime(grace_end_time_utc).strftime('%H:%M')
 
+        status_code = "active"
+        can_issue_ticket = False
+        message = "Session is active."
+
         if session.is_active and not session.end_time and (not session.planned_end_time or now < session.planned_end_time):
-            return Response({
+             return Response({
                 "status": "active",
                 "can_issue_ticket": False,
                 "message": "Session is active (Ongoing).",
@@ -208,11 +223,13 @@ class ParkingSessionViewSet(viewsets.ModelViewSet):
             status_code = "active"
             can_issue_ticket = False
             message = "Session is active."
+        
         elif now < grace_end_time_utc:
             status_code = "grace_period"
             can_issue_ticket = False
             message = f"In Grace Period (Expires at {grace_end_time_local_str})"
             session_data['end_time'] = reference_time
+            
         else:
             status_code = "expired"
             can_issue_ticket = True
@@ -224,17 +241,20 @@ class ParkingSessionViewSet(viewsets.ModelViewSet):
             if hasattr(user, 'role') and user.role == 'controller':
                 if session.parking_lot:
                     lot_city = session.parking_lot.city
-                    allowed = getattr(user, 'allowed_cities', []) or []
+                    allowed = getattr(user, 'allowed_cities', [])
+                    if not allowed: allowed = []
+                    
                     if lot_city not in allowed:
-                        return Response({"detail": f"Unauthorized city: {lot_city}"}, status=403)
+                        return Response({
+                            "detail": f"Unauthorized city: {lot_city}"
+                        }, status=403)
 
         return Response({
-            "status": status_code,
+            "status": status_code,            
             "can_issue_ticket": can_issue_ticket,
             "message": message,
             "session_data": session_data
         }, status=200)
-
     
 
 
