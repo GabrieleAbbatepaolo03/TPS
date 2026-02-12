@@ -8,7 +8,6 @@ from parkings.models import City
 from .models import Shift
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm
-from django.contrib import admin
 from django.utils.safestring import mark_safe
 
 def get_dynamic_city_choices():
