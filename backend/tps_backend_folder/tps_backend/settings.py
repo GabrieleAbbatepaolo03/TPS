@@ -3,8 +3,7 @@ from datetime import timedelta
 from django.templatetags.static import static
 from django.urls import reverse_lazy
 import os
-from dotenv import load_dotenv
-load_dotenv()
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-0ipfdb^onls00@#b_lu-b%zyvlhv)3aj)1*m@fko^=#iwm7uk^")
