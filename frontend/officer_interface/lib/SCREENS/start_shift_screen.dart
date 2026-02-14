@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:officer_interface/MAIN%20UTILS/page_transition.dart';
-import 'package:officer_interface/SCREENS/home_screen.dart';
-import 'package:officer_interface/SCREENS/login_screen.dart';
+import 'package:officer_interface/SCREENS/home/home_screen.dart';
+import 'package:officer_interface/SCREENS/login/login_screen.dart';
 import 'package:officer_interface/SERVICES/shift_service.dart';
 import 'package:officer_interface/SERVICES/auth_service.dart';
 
@@ -136,9 +136,9 @@ class _StartShiftScreenState extends State<StartShiftScreen> {
               padding: const EdgeInsets.all(32),
               child: Column(
                 children: [
-                  // Fixed Header Section
+
                   Text(
-                    "Welcome, Officer!",
+                    "Welcome Back!",
                     style: GoogleFonts.poppins(
                       fontSize: 32,
                       fontWeight: FontWeight.w600,
@@ -158,7 +158,6 @@ class _StartShiftScreenState extends State<StartShiftScreen> {
                   ),
                   const SizedBox(height: 30),
 
-                  // Error Message
                   if (_error != null) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -175,7 +174,6 @@ class _StartShiftScreenState extends State<StartShiftScreen> {
                     const SizedBox(height: 20),
                   ],
 
-                  // Start/Resume Shift Button
                   if (_checkingActiveShift)
                     const SizedBox(
                       height: 56,
@@ -231,7 +229,6 @@ class _StartShiftScreenState extends State<StartShiftScreen> {
 
                   const SizedBox(height: 40),
 
-                  // Recent Shifts Label
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -256,7 +253,6 @@ class _StartShiftScreenState extends State<StartShiftScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Scrollable Shift List
                   Expanded(
                     child: _buildShiftList(),
                   ),

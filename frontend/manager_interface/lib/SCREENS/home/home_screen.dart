@@ -6,11 +6,11 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'package:manager_interface/MAIN%20UTILS/add_parking_dialog.dart';
 import 'package:manager_interface/MAIN%20UTILS/search_bar_widget.dart';
+import 'package:manager_interface/SCREENS/login/login_screen.dart';
 import 'package:manager_interface/SCREENS/parking%20detail/parking_detail_screen.dart';
 import 'package:manager_interface/models/parking.dart';
 import 'package:manager_interface/SCREENS/home/utils/parking_card.dart';
 import 'package:manager_interface/SERVICES/auth_service.dart';
-import 'package:manager_interface/SCREENS/login_screen.dart';
 import 'package:manager_interface/models/city.dart';
 
 import 'dart:ui' as ui;

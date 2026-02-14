@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:manager_interface/SCREENS/HOME/home_screen.dart';
-import '../SERVICES/auth_service.dart';
-import '../MAIN%20UTILS/page_transition.dart';
+import 'package:manager_interface/SCREENS/login/utils/custom_auth_button.dart';
+import 'package:manager_interface/SCREENS/login/utils/custom_text_field.dart';
+import '../../SERVICES/auth_service.dart';
+import '../../MAIN%20UTILS/page_transition.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -80,8 +82,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 40),
-
-                // Login Form
                 Container(
                   width: 500,
                   padding: const EdgeInsets.all(20),
@@ -98,14 +98,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: Column(
                     children: [
-                      _buildTextField(
+                      CustomTextField(
                         controller: _emailController,
                         label: "Email",
                         icon: Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
+                        validator: (value) => (value == null || value.isEmpty) ? 'Required field' : null,
                       ),
                       const SizedBox(height: 16),
-                      _buildTextField(
+                      CustomTextField(
                         controller: _passwordController,
                         label: "Password",
                         icon: Icons.lock_outline,
@@ -114,83 +115,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         onVisibilityToggle: () {
                           setState(() => _showPassword = !_showPassword);
                         },
+                        validator: (value) => (value == null || value.isEmpty) ? 'Required field' : null,
                       ),
                       const SizedBox(height: 30),
-                      ElevatedButton(
+                      CustomAuthButton(
+                        text: "Log In",
+                        isLoading: _isLoading,
                         onPressed: _handleLogin,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black,
-                          minimumSize: const Size(double.infinity, 50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.black,
-                                ),
-                              )
-                            : const Text(
-                                "Log In",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                      )
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  /// Custom TextField widget
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    bool isPassword = false,
-    bool obscureText = false,
-    VoidCallback? onVisibilityToggle,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white),
-      cursorColor: Colors.white,
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white70),
-        prefixIcon: Icon(icon, color: Colors.white70),
-        suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                  obscureText ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.white70,
-                ),
-                onPressed: onVisibilityToggle,
-              )
-            : null,
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.1),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: Colors.white),
         ),
       ),
     );

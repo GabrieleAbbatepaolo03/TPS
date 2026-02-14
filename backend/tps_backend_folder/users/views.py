@@ -461,7 +461,6 @@ class ContestFineView(APIView):
         return Response({"message": "Fine contested successfully. Status is now pending review."}, status=status.HTTP_200_OK)
 
 # --- NUOVA VISTA: CHECK PLATE & GRACE PERIOD ---
-# Use this view in the controller app when scanning a plate
 
 class CheckPlateView(APIView):
     permission_classes = [IsAuthenticated]

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:manager_interface/SCREENS/login_screen.dart';
+import 'package:manager_interface/SCREENS/login/login_screen.dart';
 import 'package:manager_interface/SCREENS/home/home_screen.dart';
 import 'package:manager_interface/SERVICES/authentication%20helpers/secure_storage_service.dart';
 

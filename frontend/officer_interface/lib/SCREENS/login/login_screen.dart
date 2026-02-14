@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:officer_interface/MAIN%20UTILS/page_transition.dart'; 
-// import 'package:officer_interface/SCREENS/home_screen.dart';
+import 'package:officer_interface/MAIN%20UTILS/page_transition.dart';
+import 'package:officer_interface/SCREENS/login/utils/custom_auth_button.dart';
+import 'package:officer_interface/SCREENS/login/utils/custom_text_field.dart'; 
 import 'package:officer_interface/SCREENS/start_shift_screen.dart';
-
-
-// FIX: Assicurati che questo percorso corrisponda esattamente alla posizione di auth_service.dart
-// Se i tuoi servizi sono in lib/services/auth_service.dart, questa riga è corretta.
 import 'package:officer_interface/SERVICES/auth_service.dart'; 
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -40,7 +38,6 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
-    // Uses AuthService to log in, checking specifically for the 'controller' role
     final success = await AuthService.loginController(
       _emailController.text.trim(),
       _passwordController.text,
@@ -65,7 +62,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        // Gradient background
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.bottomCenter,
@@ -77,7 +73,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         child: Center(
-          // NEW: Constrain max width for desktop/web view
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 450),
             child: SingleChildScrollView(
@@ -88,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Controller Login',
+                      'Patroller Login',
                       style: GoogleFonts.poppins(
                         fontSize: 40,
                         fontWeight: FontWeight.w300,
@@ -97,30 +92,35 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 40),
 
-                    // Login Form Container
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: Colors.black26,
                         borderRadius: BorderRadius.circular(25),
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
                             color: Colors.black12,
                             blurRadius: 8,
-                            offset: const Offset(0, 4),
+                            offset: Offset(0, 4),
                           ),
                         ],
                       ),
                       child: Column(
                         children: [
-                          _buildTextField(
+                          CustomTextField(
                             controller: _emailController,
                             label: "Email",
                             icon: Icons.email_outlined,
                             keyboardType: TextInputType.emailAddress,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Required field';
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 16),
-                          _buildTextField(
+                          CustomTextField(
                             controller: _passwordController,
                             label: "Password",
                             icon: Icons.lock_outline,
@@ -129,34 +129,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             onVisibilityToggle: () {
                               setState(() => _showPassword = !_showPassword);
                             },
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Required field';
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 30),
-                          ElevatedButton(
-                            onPressed: _isLoading ? null : _handleLogin,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.black,
-                              minimumSize: const Size(double.infinity, 50),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                            ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    height: 24,
-                                    width: 24,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.black,
-                                    ),
-                                  )
-                                : const Text(
-                                    "Log In",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                          )
+                          CustomAuthButton(
+                            text: "Log In",
+                            isLoading: _isLoading,
+                            onPressed: _handleLogin,
+                          ),
                         ],
                       ),
                     ),
@@ -165,55 +150,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  /// Custom TextField widget
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    bool isPassword = false,
-    bool obscureText = false,
-    VoidCallback? onVisibilityToggle,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Required field';
-        }
-        return null;
-      },
-      style: const TextStyle(color: Colors.white),
-      cursorColor: Colors.white,
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white70),
-        prefixIcon: Icon(icon, color: Colors.white70),
-        suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                  obscureText ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.white70,
-                ),
-                onPressed: onVisibilityToggle,
-              )
-            : null,
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.1),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: Colors.white),
         ),
       ),
     );
