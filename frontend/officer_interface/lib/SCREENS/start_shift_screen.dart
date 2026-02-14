@@ -18,8 +18,8 @@ class _StartShiftScreenState extends State<StartShiftScreen> {
   String? _error;
   List<ShiftInfo> _shiftHistory = [];
   bool _loadingHistory = false;
-  ShiftInfo? _activeShift; // Add this
-  bool _checkingActiveShift = true; // Add this
+  ShiftInfo? _activeShift; 
+  bool _checkingActiveShift = true; 
 
   @override
   void initState() {
